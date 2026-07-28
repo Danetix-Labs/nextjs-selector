@@ -10,6 +10,12 @@ export {
   type TypeaheadBuffer,
 } from './core/typeahead.js'
 export {
+  computeWindow,
+  scrollOffsetFor,
+  type VirtualWindow,
+  type VirtualWindowInput,
+} from './core/virtual.js'
+export {
   supportsAnchorPositioning,
   supportsPopover,
   useAnchorStyle,
@@ -34,3 +40,4 @@ export type {
   SelectState,
 } from './types.js'
 export { type SelectApi, type SelectIds, type UseSelectConfig, useSelect } from './useSelect.js'
+export { type UseVirtualConfig, useVirtual, type VirtualList } from './virtual.js'
