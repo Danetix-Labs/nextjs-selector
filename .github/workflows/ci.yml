@@ -72,10 +72,15 @@ jobs:
           npm install ../artifact/*.tgz
           node -e "require('nextjs-selector'); console.log('CJS require OK')"
 
-      - name: Resolve under the react-server condition
+      # Resolution only, never execution: this is a 'use client' package, and
+      # under the react-server condition React withholds the hooks it needs.
+      # What must hold is that the exports map still resolves via the `default`
+      # fallback when an unknown condition is in play.
+      - name: Resolve exports under the react-server condition
         run: |
           cd consumer-esm
-          node --conditions=react-server -e "import('nextjs-selector').then(() => console.log('react-server OK'))"
+          node --conditions=react-server --input-type=module \
+            -e "console.log('resolved to', import.meta.resolve('nextjs-selector'))"
 
   nextjs:
     name: Build with Next.js ${{ matrix.next }}
