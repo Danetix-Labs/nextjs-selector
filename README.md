@@ -24,7 +24,58 @@ CI проверяет на каждом push и PR:
 
 ## Использование
 
-Ядро headless: логика, клавиатура и ARIA — ваши разметка и стили.
+### Составные компоненты
+
+```tsx
+'use client'
+
+import { Select } from 'nextjs-selector'
+
+const options = [
+  { value: 'react', label: 'React' },
+  { value: 'vue', label: 'Vue' },
+  { value: 'svelte', label: 'Svelte', disabled: true },
+]
+
+export function Picker() {
+  return (
+    <Select.Root options={options} multiple name="stack">
+      <Select.Label>Технологии</Select.Label>
+      <Select.Trigger>
+        <Select.Value placeholder="Выберите" />
+        <Select.ClearButton>×</Select.ClearButton>
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Search aria-label="Поиск" />
+        <Select.Empty>Ничего не найдено</Select.Empty>
+        <Select.List />
+      </Select.Content>
+    </Select.Root>
+  )
+}
+```
+
+`name` включает скрытые поля формы: значение видно `FormData`, обычной отправке
+и Server Actions React 19 — без JavaScript на принимающей стороне.
+
+Части подменяются по одной. `Select.List` принимает функцию, если нужен свой
+рендер строки:
+
+```tsx
+<Select.List>
+  {(option, index) => (
+    <Select.Item option={option} index={index}>
+      <Select.ItemIndicator option={option}>✓</Select.ItemIndicator>
+      {option.label}
+    </Select.Item>
+  )}
+</Select.List>
+```
+
+### Headless
+
+Когда нужна своя разметка целиком — логика, клавиатура и ARIA без единого
+элемента от библиотеки.
 
 ```tsx
 'use client'
@@ -103,12 +154,35 @@ Tailwind не обязателен.
 import 'nextjs-selector/styles.css'
 ```
 
+### Клавиатура
+
+По паттерну APG combobox: `↑↓`, `Home`/`End`, `PageUp`/`PageDown`, `Enter`,
+`Esc`, `Tab`, typeahead по набранным буквам (повтор буквы перебирает опции на
+неё, как в нативном `<select>`), `Backspace` снимает последнее значение
+в множественном режиме.
+
+### Большие списки
+
+```tsx
+const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
+```
+
+В DOM попадает только видимое окно плюс overscan, подсветка удерживается
+в зоне видимости. Тест поднимает 10 000 опций и проверяет, что узлов меньше 25.
+
 ### Производительность
 
 Состояние живёт во внешнем store, а компоненты подписываются на отдельные
 булевы срезы через `useSyncExternalStore`. Перемещение подсветки перерисовывает
 две опции — ту, что её теряет, и ту, что получает, — независимо от длины списка.
 Это закреплено тестом.
+
+### Доступность
+
+Тесты прогоняют axe в закрытом и открытом состоянии. Автоматический аудит
+ловит структурные ошибки ARIA, но не заменяет проверку живым скринридером:
+прогонов в NVDA, JAWS и VoiceOver ещё не было, поэтому соответствие WCAG 2.2 AA
+пока не заявляется.
 
 ## Разработка
 
