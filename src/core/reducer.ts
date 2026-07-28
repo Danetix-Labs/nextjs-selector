@@ -28,6 +28,30 @@ function firstSelectable<TValue>(options: readonly SelectOption<TValue>[]): numb
 }
 
 /**
+ * Closest selectable index to `target`, preferring `step`'s direction.
+ * Used by paging, which clamps at the edges instead of wrapping.
+ */
+function seekNearest<TValue>(
+  options: readonly SelectOption<TValue>[],
+  target: number,
+  step: 1 | -1,
+): number {
+  if (options[target] && !options[target].disabled) return target
+
+  for (const direction of [step, -step] as const) {
+    for (let i = target + direction; i >= 0 && i < options.length; i += direction) {
+      if (!options[i]?.disabled) return i
+    }
+  }
+
+  return NO_ACTIVE
+}
+
+function clamp(value: number, max: number): number {
+  return Math.min(Math.max(value, 0), max)
+}
+
+/**
  * Pure transition. Returns the *same* state reference on no-ops so the store
  * can skip notifying subscribers — this is what keeps renders off the table.
  */
@@ -57,11 +81,20 @@ export function reduce<TValue>(
       return action.index === state.activeIndex ? state : { ...state, activeIndex: action.index }
 
     case 'move': {
-      if (options.length === 0) return state
+      const { length } = options
+      if (length === 0) return state
       if (!state.open) return reduce(state, { type: 'open' }, ctx)
 
-      const index = seek(options, state.activeIndex, action.delta < 0 ? -1 : 1)
-      return index === state.activeIndex ? state : { ...state, activeIndex: index }
+      const step = action.delta < 0 ? -1 : 1
+      // Single steps wrap around; paging clamps at the edges.
+      const index =
+        Math.abs(action.delta) === 1
+          ? seek(options, state.activeIndex, step)
+          : seekNearest(options, clamp(state.activeIndex + action.delta, length - 1), step)
+
+      return index === state.activeIndex || index === NO_ACTIVE
+        ? state
+        : { ...state, activeIndex: index }
     }
 
     case 'moveEdge': {

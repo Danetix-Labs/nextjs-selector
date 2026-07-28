@@ -88,3 +88,34 @@ describe('reduce', () => {
     expect(reduce(initialState<string>(), { type: 'open' }, ctx).activeIndex).toBe(NO_ACTIVE)
   })
 })
+
+describe('постраничная навигация', () => {
+  const many: readonly SelectOption[] = Array.from({ length: 25 }, (_, i) => ({
+    value: `v${i}`,
+    label: `Option ${i}`,
+  }))
+  const ctx: SelectContext<string> = { options: many, multiple: false }
+
+  it('PageDown прыгает на страницу вперёд', () => {
+    const state = reduce(initialState<string>(), { type: 'open' }, ctx)
+
+    expect(reduce(state, { type: 'move', delta: 10 }, ctx).activeIndex).toBe(10)
+  })
+
+  it('упирается в границы вместо заворачивания', () => {
+    const last = reduce(initialState<string>(), { type: 'moveEdge', edge: 'last' }, ctx)
+
+    expect(reduce(last, { type: 'move', delta: 10 }, ctx)).toBe(last)
+    expect(reduce(last, { type: 'move', delta: -10 }, ctx).activeIndex).toBe(14)
+  })
+
+  it('садится на ближайшую доступную опцию', () => {
+    const withDisabled: SelectContext<string> = {
+      options: many.map((o, i) => (i === 10 ? { ...o, disabled: true } : o)),
+      multiple: false,
+    }
+    const state = reduce(initialState<string>(), { type: 'open' }, withDisabled)
+
+    expect(reduce(state, { type: 'move', delta: 10 }, withDisabled).activeIndex).toBe(11)
+  })
+})

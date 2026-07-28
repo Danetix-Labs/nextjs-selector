@@ -3,6 +3,13 @@
 export { initialState, NO_ACTIVE, reduce } from './core/reducer.js'
 export { createStore, type Listener, type Store } from './core/store.js'
 export {
+  appendToBuffer,
+  emptyBuffer,
+  matchPrefix,
+  TYPEAHEAD_TIMEOUT_MS,
+  type TypeaheadBuffer,
+} from './core/typeahead.js'
+export {
   type OptionPropsConfig,
   useIsOpen,
   useLabelProps,

@@ -127,6 +127,28 @@ describe('useSelect', () => {
     expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
   })
 
+  it('typeahead открывает список и прыгает к опции по набранным буквам', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const trigger = screen.getByRole('combobox')
+    trigger.focus()
+
+    await user.keyboard('gam')
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(trigger).toHaveAttribute('aria-activedescendant', screen.getByText('Gamma').id)
+  })
+
+  it('в поле поиска печатные клавиши идут в запрос, а не в typeahead', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+
+    await user.type(screen.getByLabelText('Поиск'), 'be')
+
+    expect(screen.getByLabelText('Поиск')).toHaveValue('be')
+    expect(screen.getByText('Beta')).toBeInTheDocument()
+  })
+
   it('перемещение подсветки перерисовывает только две опции', async () => {
     const user = userEvent.setup()
     const onRender = vi.fn()

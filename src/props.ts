@@ -1,8 +1,9 @@
 'use client'
 
 import type { KeyboardEvent } from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 
+import { appendToBuffer, emptyBuffer, matchPrefix } from './core/typeahead.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
 import type { SelectState } from './types.js'
 import type { SelectApi } from './useSelect.js'
@@ -11,6 +12,9 @@ import type { SelectApi } from './useSelect.js'
 type DataFlag = '' | undefined
 
 const flag = (on: boolean): DataFlag => (on ? '' : undefined)
+
+/** Options traversed by PageUp/PageDown. */
+const PAGE_SIZE = 10
 
 export function useIsOpen<TValue>(api: SelectApi<TValue>): boolean {
   return useStoreSlice(
@@ -46,11 +50,23 @@ function useActiveIndex<TValue>(api: SelectApi<TValue>): number {
  * user's query rather than to us.
  */
 function useKeyDown<TValue>(api: SelectApi<TValue>, textEntry: boolean) {
+  const buffer = useRef(emptyBuffer)
+
   return useCallback(
     (event: KeyboardEvent) => {
       const { dispatch, store, multiple } = api
 
       switch (event.key) {
+        case 'PageDown':
+          event.preventDefault()
+          dispatch({ type: 'move', delta: PAGE_SIZE })
+          return
+
+        case 'PageUp':
+          event.preventDefault()
+          dispatch({ type: 'move', delta: -PAGE_SIZE })
+          return
+
         case 'ArrowDown':
           event.preventDefault()
           dispatch({ type: 'move', delta: 1 })
@@ -102,6 +118,27 @@ function useKeyDown<TValue>(api: SelectApi<TValue>, textEntry: boolean) {
 
         case 'Tab':
           if (store.getState().open) dispatch({ type: 'close' })
+          return
+
+        // Typeahead: printable keys jump to the matching option, the way a
+        // native <select> behaves. In a text field they belong to the query.
+        default: {
+          if (textEntry || event.key.length !== 1) return
+          if (event.ctrlKey || event.metaKey || event.altKey) return
+
+          buffer.current = appendToBuffer(buffer.current, event.key, Date.now())
+
+          const index = matchPrefix(
+            api.getVisibleOptions(),
+            buffer.current.text,
+            store.getState().activeIndex,
+          )
+          if (index < 0) return
+
+          event.preventDefault()
+          if (!store.getState().open) dispatch({ type: 'open' })
+          dispatch({ type: 'setActive', index })
+        }
       }
     },
     [api, textEntry],
