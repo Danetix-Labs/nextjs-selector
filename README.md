@@ -24,9 +24,73 @@ CI проверяет на каждом push и PR:
 
 ## Использование
 
-```ts
-import {} from 'nextjs-selector'
+Ядро headless: логика, клавиатура и ARIA — ваши разметка и стили.
+
+```tsx
+'use client'
+
+import {
+  useSelect, useTriggerProps, useListboxProps, useOptionProps,
+  useSearchProps, useLabelProps, useSelectedValues,
+} from 'nextjs-selector'
+
+const options = [
+  { value: 'react', label: 'React' },
+  { value: 'vue', label: 'Vue' },
+  { value: 'svelte', label: 'Svelte', disabled: true },
+]
+
+function Option({ api, index, option }) {
+  return <li {...useOptionProps(api, { index, value: option.value, disabled: option.disabled })}>
+    {option.label}
+  </li>
+}
+
+export function Picker() {
+  const api = useSelect({ options, multiple: true })
+  const selected = useSelectedValues(api)
+
+  return (
+    <div>
+      <label {...useLabelProps(api)}>Технологии</label>
+      <button type="button" {...useTriggerProps(api)}>{selected.join(', ') || 'Выберите'}</button>
+      <input {...useSearchProps(api)} />
+      <ul {...useListboxProps(api)}>
+        {api.getVisibleOptions().map((option, index) => (
+          <Option key={option.value} api={api} index={index} option={option} />
+        ))}
+      </ul>
+    </div>
+  )
+}
 ```
+
+### Стилизация
+
+Состояние выражено data-атрибутами, поэтому подходит любой способ писать стили —
+Tailwind не обязателен.
+
+```css
+[data-part='option'][data-highlighted] { background: #eef; }
+[data-part='option'][data-selected]    { font-weight: 600; }
+[data-part='option'][data-disabled]    { opacity: 0.5; }
+[data-part='trigger'][data-state='open'] { border-color: #66f; }
+```
+
+```tsx
+<li {...props} className="data-highlighted:bg-indigo-50 data-selected:font-semibold" />
+```
+
+Части: `label`, `trigger`, `search`, `listbox`, `option`.
+Состояния: `data-state="open|closed"`, `data-highlighted`, `data-selected`,
+`data-disabled`, `data-multiple`.
+
+### Производительность
+
+Состояние живёт во внешнем store, а компоненты подписываются на отдельные
+булевы срезы через `useSyncExternalStore`. Перемещение подсветки перерисовывает
+две опции — ту, что её теряет, и ту, что получает, — независимо от длины списка.
+Это закреплено тестом.
 
 ## Разработка
 
