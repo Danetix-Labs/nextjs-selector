@@ -16,6 +16,11 @@ export {
   type VirtualWindowInput,
 } from './core/virtual.js'
 export {
+  type HiddenFieldProps,
+  type UseFormFieldsConfig,
+  useFormFields,
+} from './form.js'
+export {
   supportsAnchorPositioning,
   supportsPopover,
   useAnchorStyle,
