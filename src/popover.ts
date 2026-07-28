@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { useIsOpen, useListboxProps } from './props.js'
+import { useIsOpen } from './props.js'
 import type { SelectApi } from './useSelect.js'
 
 /** Native top-layer popover — Baseline since Safari 17 / Firefox 132. */
@@ -35,7 +35,6 @@ interface ToggleEventLike extends Event {
  * markup agree during hydration.
  */
 export function usePopoverProps<TValue>(api: SelectApi<TValue>) {
-  const listbox = useListboxProps(api)
   const open = useIsOpen(api)
   const ref = useRef<HTMLElement | null>(null)
   const [enhanced, setEnhanced] = useState(false)
@@ -72,10 +71,14 @@ export function usePopoverProps<TValue>(api: SelectApi<TValue>) {
     ref.current = element
   }, [])
 
+  // Deliberately carries no ARIA role: `role="listbox"` belongs on the element
+  // that directly contains the options, otherwise aria-required-children and
+  // aria-required-parent are both violated.
   return {
-    ...listbox,
     ref: setRef,
     popover: enhanced ? ('auto' as const) : undefined,
+    'data-part': 'content',
+    'data-state': open ? 'open' : 'closed',
     style: { positionAnchor: api.ids.anchor } as CSSProperties,
   }
 }

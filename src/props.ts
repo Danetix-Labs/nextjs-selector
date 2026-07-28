@@ -5,7 +5,7 @@ import { useCallback, useMemo, useRef } from 'react'
 
 import { appendToBuffer, emptyBuffer, matchPrefix } from './core/typeahead.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
-import type { SelectState } from './types.js'
+import type { SelectOption, SelectState } from './types.js'
 import type { SelectApi } from './useSelect.js'
 
 /** Present when true, absent when false — the shape CSS attribute selectors expect. */
@@ -35,6 +35,19 @@ export function useQuery<TValue>(api: SelectApi<TValue>): string {
     api.store,
     useCallback((state: SelectState<TValue>) => state.query, []),
   )
+}
+
+/**
+ * Visible options, with the subscription that keeps them fresh.
+ *
+ * `getVisibleOptions` reads a ref, so on its own it would go stale: a parent
+ * re-render does not reach children whose element identity is unchanged.
+ * Subscribing to the query here is what makes filtering reactive.
+ */
+export function useVisibleOptions<TValue>(api: SelectApi<TValue>): readonly SelectOption<TValue>[] {
+  useQuery(api)
+
+  return api.getVisibleOptions()
 }
 
 function useActiveIndex<TValue>(api: SelectApi<TValue>): number {

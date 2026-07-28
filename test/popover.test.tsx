@@ -51,9 +51,9 @@ describe('popover layer', () => {
 
     render(<Harness />)
 
-    const listbox = screen.getByRole('listbox')
-    expect(listbox).not.toHaveAttribute('popover')
-    expect(listbox).toHaveAttribute('data-state', 'closed')
+    const content = document.querySelector('[data-part="content"]') as HTMLElement
+    expect(content).not.toHaveAttribute('popover')
+    expect(content).toHaveAttribute('data-state', 'closed')
   })
 
   it('связывает listbox с триггером через CSS anchor', () => {
@@ -61,7 +61,8 @@ describe('popover layer', () => {
 
     const anchorName = screen.getByRole('combobox').style.getPropertyValue('anchor-name')
     expect(anchorName).toMatch(/^--anchor-/)
-    expect(screen.getByRole('listbox').style.getPropertyValue('position-anchor')).toBe(anchorName)
+    const content = document.querySelector('[data-part="content"]') as HTMLElement
+    expect(content.style.getPropertyValue('position-anchor')).toBe(anchorName)
   })
 
   it('где Popover API есть — открывает и закрывает через него', async () => {
@@ -70,7 +71,7 @@ describe('popover layer', () => {
     const { container } = render(<Harness />)
 
     // С атрибутом popover элемент скрыт UA-стилем, поэтому ARIA-запрос его не видит.
-    expect(container.querySelector('[data-part="listbox"]')).toHaveAttribute('popover', 'auto')
+    expect(container.querySelector('[data-part="content"]')).toHaveAttribute('popover', 'auto')
 
     await user.click(screen.getByRole('combobox'))
     expect(show).toHaveBeenCalled()
@@ -87,7 +88,7 @@ describe('popover layer', () => {
     await user.click(screen.getByRole('combobox'))
     expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'true')
 
-    const listbox = container.querySelector('[data-part="listbox"]') as HTMLElement
+    const listbox = container.querySelector('[data-part="content"]') as HTMLElement
     const toggle = new Event('toggle')
     Object.assign(toggle, { newState: 'closed' })
     act(() => {

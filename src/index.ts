@@ -1,5 +1,23 @@
 'use client'
 
+export {
+  ClearButton,
+  Content,
+  Empty,
+  Item,
+  ItemIndicator,
+  type ItemProps,
+  Label,
+  List,
+  type ListProps,
+  Root,
+  type RootProps,
+  Search,
+  Select,
+  Trigger,
+  Value,
+  type ValueProps,
+} from './components.js'
 export { initialState, NO_ACTIVE, reduce } from './core/reducer.js'
 export { createStore, type Listener, type Store } from './core/store.js'
 export {
@@ -36,6 +54,7 @@ export {
   useSearchProps,
   useSelectedValues,
   useTriggerProps,
+  useVisibleOptions,
 } from './props.js'
 export { useStoreSlice } from './react/useStoreSlice.js'
 export type {
