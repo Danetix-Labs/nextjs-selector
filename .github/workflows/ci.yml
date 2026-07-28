@@ -75,3 +75,105 @@ jobs:
         run: |
           cd consumer-esm
           node --conditions=react-server -e "import('nextjs-selector').then(() => console.log('react-server OK'))"
+
+  nextjs:
+    name: Build with Next.js ${{ matrix.next }}
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Next 14/15 build with webpack, Next 16 defaults to Turbopack.
+          - next: '14'
+            react: '18.3.1'
+            node: 20
+          - next: '15'
+            react: '19.0.0'
+            node: 22
+          - next: '16'
+            react: '19.2.0'
+            node: 24
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-tarball
+          path: artifact
+
+      - name: Scaffold a probe app
+        run: |
+          mkdir -p probe/app probe/pages && cd probe
+          echo '{"name":"probe","version":"1.0.0","private":true}' > package.json
+          echo 'module.exports = {}' > next.config.js
+
+          cat > app/layout.tsx <<'TSX'
+          export default function RootLayout({ children }: { children: React.ReactNode }) {
+            return (
+              <html lang="en">
+                <body>{children}</body>
+              </html>
+            )
+          }
+          TSX
+
+          # Client Component: exercises the browser bundle.
+          cat > app/client.tsx <<'TSX'
+          'use client'
+
+          import * as pkg from 'nextjs-selector'
+
+          export function ClientProbe() {
+            return <span>client exports: {Object.keys(pkg).length}</span>
+          }
+          TSX
+
+          # Server Component: exercises the RSC graph and the react-server condition.
+          cat > app/page.tsx <<'TSX'
+          import * as pkg from 'nextjs-selector'
+
+          import { ClientProbe } from './client'
+
+          export default function Page() {
+            return (
+              <main>
+                <p>server exports: {Object.keys(pkg).length}</p>
+                <ClientProbe />
+              </main>
+            )
+          }
+          TSX
+
+          # Pages Router lives alongside the App Router here on purpose.
+          cat > pages/probe.tsx <<'TSX'
+          import * as pkg from 'nextjs-selector'
+
+          export default function ProbePage() {
+            return <p>pages router exports: {Object.keys(pkg).length}</p>
+          }
+          TSX
+
+      - name: Install
+        working-directory: probe
+        run: |
+          # TypeScript is pinned to 5.x: Next.js 16 rejects the TS 7 compiler API.
+          npm install \
+            next@${{ matrix.next }} \
+            react@${{ matrix.react }} \
+            react-dom@${{ matrix.react }} \
+            typescript@^5.9.3 \
+            @types/react @types/node \
+            ../artifact/*.tgz
+
+      - name: Build
+        working-directory: probe
+        run: npx next build
+
+      - name: Build with webpack
+        if: matrix.next == '16'
+        working-directory: probe
+        run: rm -rf .next && npx next build --webpack

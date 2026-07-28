@@ -10,6 +10,18 @@ npm install nextjs-selector
 
 Требования: Node.js >= 18.17.0.
 
+## Совместимость
+
+CI проверяет на каждом push и PR:
+
+| Проверка | Покрытие |
+| --- | --- |
+| Установка тарбола в чистый проект | Node.js 18, 20, 22, 24 — ESM и CJS |
+| Резолв типов | `node10`, `node16` (CJS и ESM), `bundler` |
+| Условия экспорта | `import`, `require`, fallback `default` под `--conditions=react-server` |
+| Сборка Next.js | 14 (webpack, React 18), 15 (webpack, React 19), 16 (Turbopack и `--webpack`, React 19.2) |
+| Роутеры Next.js | App Router (Server + Client Components) и Pages Router |
+
 ## Использование
 
 ```ts
