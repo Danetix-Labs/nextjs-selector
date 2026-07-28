@@ -39,7 +39,7 @@ export function useFormFields<TValue>(
   const { multiple } = api
 
   return useMemo(() => {
-    const toString = serialize ?? ((value: TValue) => String(value))
+    const serializeValue = serialize ?? ((value: TValue) => String(value))
 
     if (!multiple) {
       // Single mode always submits the key, empty when nothing is chosen —
@@ -47,12 +47,17 @@ export function useFormFields<TValue>(
       const value = selected[0]
 
       return [
-        { type: 'hidden', name, value: value === undefined ? '' : toString(value), key: name },
+        {
+          type: 'hidden',
+          name,
+          value: value === undefined ? '' : serializeValue(value),
+          key: name,
+        },
       ]
     }
 
     return selected.map((value) => {
-      const serialized = toString(value)
+      const serialized = serializeValue(value)
 
       return { type: 'hidden', name, value: serialized, key: serialized }
     })
