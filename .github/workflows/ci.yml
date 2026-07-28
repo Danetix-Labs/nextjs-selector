@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npm run check:exports
+
+      - name: Pack tarball
+        run: npm pack --pack-destination ./artifact
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: artifact/*.tgz
+          retention-days: 1
+
+  compat:
+    name: Consume on Node ${{ matrix.node }}
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-tarball
+          path: artifact
+
+      - name: Install into a clean ESM consumer
+        run: |
+          mkdir -p consumer-esm && cd consumer-esm
+          echo '{"name":"c-esm","version":"1.0.0","type":"module","private":true}' > package.json
+          npm install ../artifact/*.tgz
+          node -e "import('nextjs-selector').then(() => console.log('ESM import OK'))"
+
+      - name: Install into a clean CJS consumer
+        run: |
+          mkdir -p consumer-cjs && cd consumer-cjs
+          echo '{"name":"c-cjs","version":"1.0.0","type":"commonjs","private":true}' > package.json
+          npm install ../artifact/*.tgz
+          node -e "require('nextjs-selector'); console.log('CJS require OK')"
+
+      - name: Resolve under the react-server condition
+        run: |
+          cd consumer-esm
+          node --conditions=react-server -e "import('nextjs-selector').then(() => console.log('react-server OK'))"
