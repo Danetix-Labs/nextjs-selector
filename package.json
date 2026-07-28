@@ -1,7 +1,7 @@
 {
   "name": "nextjs-selector",
   "version": "0.0.0",
-  "description": "",
+  "description": "Accessible select and multi-select components for React and Next.js",
   "license": "MIT",
   "author": "Danetix-Labs",
   "repository": {
@@ -11,9 +11,13 @@
   "bugs": "https://github.com/Danetix-Labs/nextjs-selector/issues",
   "homepage": "https://github.com/Danetix-Labs/nextjs-selector#readme",
   "keywords": [
+    "react",
     "nextjs",
-    "next",
-    "selector"
+    "select",
+    "multiselect",
+    "combobox",
+    "dropdown",
+    "accessibility"
   ],
   "type": "module",
   "sideEffects": false,

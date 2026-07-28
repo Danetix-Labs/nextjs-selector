@@ -31,7 +31,8 @@ jobs:
       - run: npm run check:exports
 
       - name: Pack tarball
-        run: npm pack --pack-destination ./artifact
+        # --pack-destination does not create the directory itself.
+        run: mkdir -p artifact && npm pack --pack-destination ./artifact
 
       - uses: actions/upload-artifact@v7
         with:

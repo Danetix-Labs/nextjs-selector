@@ -34,7 +34,9 @@ jobs:
         uses: changesets/action@v1
         with:
           version: npx changeset version
-          publish: npm run release
+          # Without NPM_TOKEN the action only opens the version PR instead of
+          # failing on an unauthenticated publish.
+          publish: ${{ secrets.NPM_TOKEN != '' && 'npm run release' || '' }}
           commit: 'chore: release'
           title: 'chore: release'
         env:
