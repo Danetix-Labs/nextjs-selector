@@ -25,7 +25,8 @@
     "node": ">=18.17.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "styles.css"
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -42,7 +43,8 @@
       },
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./styles.css": "./styles.css"
   },
   "scripts": {
     "build": "tsdown",

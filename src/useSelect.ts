@@ -13,6 +13,8 @@ export interface SelectIds {
   readonly label: string
   /** Option id, needed for aria-activedescendant. */
   readonly option: (index: number) => string
+  /** Per-instance CSS anchor name tying the listbox to the trigger. */
+  readonly anchor: string
 }
 
 export interface UseSelectConfig<TValue> {
@@ -103,6 +105,8 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
       listbox: `${id}-listbox`,
       label: `${id}-label`,
       option: (index) => `${id}-option-${index}`,
+      // Custom idents cannot contain the colons React puts in useId output.
+      anchor: `--anchor-${id.replace(/[^\w-]/g, '')}`,
     }),
     [id],
   )

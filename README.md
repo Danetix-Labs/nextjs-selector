@@ -85,6 +85,24 @@ Tailwind не обязателен.
 Состояния: `data-state="open|closed"`, `data-highlighted`, `data-selected`,
 `data-disabled`, `data-multiple`.
 
+### Позиционирование
+
+`usePopoverProps` использует нативный Popover API и CSS anchor positioning —
+браузер сам даёт top layer, закрытие по клику вне и по Esc. Где API нет, список
+рендерится в обычном потоке, а `data-state` скрывает его в CSS: чистое
+прогрессивное улучшение, без JS-вычислений позиции и без floating-ui.
+
+```tsx
+<button {...useTriggerProps(api)} style={useAnchorStyle(api)}>…</button>
+<ul {...usePopoverProps(api)}>…</ul>
+```
+
+Опционально — базовые стили позиционирования:
+
+```ts
+import 'nextjs-selector/styles.css'
+```
+
 ### Производительность
 
 Состояние живёт во внешнем store, а компоненты подписываются на отдельные

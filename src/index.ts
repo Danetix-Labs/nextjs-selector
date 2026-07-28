@@ -10,6 +10,12 @@ export {
   type TypeaheadBuffer,
 } from './core/typeahead.js'
 export {
+  supportsAnchorPositioning,
+  supportsPopover,
+  useAnchorStyle,
+  usePopoverProps,
+} from './popover.js'
+export {
   type OptionPropsConfig,
   useIsOpen,
   useLabelProps,

@@ -1,0 +1,53 @@
+/*
+ * Optional baseline for nextjs-selector.
+ *
+ * Positioning only — no colours, no typography, nothing you would have to
+ * fight. Import it, or skip it and style the data-attributes yourself:
+ *
+ *   import 'nextjs-selector/styles.css'
+ */
+
+[data-part='listbox'] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-part='listbox'][data-state='closed'] {
+  display: none;
+}
+
+/* Native popover: the browser owns the top layer, we only place the box. */
+[data-part='listbox']:popover-open {
+  position: absolute;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: auto;
+  max-height: var(--sel-max-height, 20rem);
+  width: var(--sel-width, anchor-size(width));
+}
+
+@supports (anchor-name: --probe) {
+  [data-part='listbox'] {
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block, flip-inline;
+    margin-block-start: var(--sel-offset, 0.25rem);
+  }
+}
+
+/* Without anchor positioning the listbox falls back to normal flow, so the
+   trigger's wrapper becomes the containing block. */
+@supports not (anchor-name: --probe) {
+  [data-part='listbox']:not(:popover-open) {
+    position: relative;
+  }
+}
+
+[data-part='option'] {
+  cursor: default;
+}
+
+[data-part='option'][data-disabled] {
+  cursor: not-allowed;
+}
