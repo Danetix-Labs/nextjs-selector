@@ -33,8 +33,12 @@ export function computeWindow(input: VirtualWindowInput): VirtualWindow {
   const firstVisible = Math.floor(scrollTop / itemHeight)
   const visibleCount = Math.ceil(viewportHeight / itemHeight)
 
-  const start = Math.max(0, firstVisible - overscan)
+  // Clamped to the list, not just to zero: when the options shrink while the
+  // container stays scrolled — a filter narrowing the list, say — the offset
+  // still points past the end, and an unclamped start would slice to nothing
+  // and reserve height for rows that no longer exist.
   const end = Math.min(count, firstVisible + visibleCount + overscan)
+  const start = Math.min(Math.max(0, firstVisible - overscan), end)
 
   return {
     start,
