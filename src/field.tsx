@@ -6,6 +6,8 @@ import {
   ClearButton,
   Content,
   Empty,
+  Footer,
+  Header,
   Label,
   List,
   LoadError,
@@ -42,6 +44,10 @@ export interface SelectFieldProps<
   readonly errorMessage?: ReactNode
   /** Label of the «load more» control. */
   readonly loadMoreLabel?: ReactNode
+  /** Pinned above the list: counters, hints, filters. */
+  readonly header?: ReactNode
+  /** Pinned below the list: actions like «Create» or «Manage». */
+  readonly footer?: ReactNode
   readonly clearable?: boolean
   /** Row height in pixels. Setting it switches the list to virtualization. */
   readonly itemHeight?: number
@@ -72,6 +78,8 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
   topLayer,
   sheet,
   sheetMedia,
+  header,
+  footer,
   ...config
 }: SelectFieldProps<TValue, TOption>) {
   const withSearch = searchable ?? config.loadOptions !== undefined
@@ -97,11 +105,13 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
 
       <Content topLayer={topLayer} sheet={sheet} sheetMedia={sheetMedia}>
         {withSearch ? <Search aria-label={accessibleName} placeholder={searchPlaceholder} /> : null}
+        {header === undefined ? null : <Header>{header}</Header>}
         {config.loadOptions ? <Loading>{loadingMessage}</Loading> : null}
         {config.loadOptions ? <LoadError>{errorMessage}</LoadError> : null}
         <Empty>{emptyMessage}</Empty>
         {itemHeight === undefined ? <List /> : <Virtualized itemHeight={itemHeight} />}
         {config.loadOptions ? <LoadMore>{loadMoreLabel}</LoadMore> : null}
+        {footer === undefined ? null : <Footer>{footer}</Footer>}
       </Content>
     </Root>
   )

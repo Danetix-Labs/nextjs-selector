@@ -227,6 +227,22 @@ const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
 <Select.Virtualized itemHeight={34} style={{ height: '15rem' }} />
 ```
 
+### Слоты вокруг списка
+
+Закреплённые области над и под списком — счётчики, подсказки, действия:
+
+```tsx
+<MultiSelect
+  options={options}
+  label="Теги"
+  header={<span>Выбрано: {count}</span>}
+  footer={<button onClick={createTag}>Создать тег</button>}
+/>
+```
+
+Они намеренно вне листбокса: тот может содержать только опции и группы,
+иначе ломается `aria-required-children`.
+
 ### Подгрузка страницами
 
 Источник может отдавать курсор — тогда список догружается по мере прокрутки:

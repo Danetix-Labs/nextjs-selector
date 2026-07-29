@@ -204,6 +204,26 @@ export function Search(props: ComponentPropsWithoutRef<'input'>) {
   return <input {...useSearchProps(useApi())} {...props} />
 }
 
+/**
+ * Pinned area above the list — a counter, a hint, a filter.
+ *
+ * Lives outside the listbox on purpose: a listbox may only contain options and
+ * groups, so anything else here would break aria-required-children.
+ */
+export function Header(props: ComponentPropsWithoutRef<'div'>) {
+  return <div data-part="header" {...props} />
+}
+
+/** Pinned area below the list — actions like «Create», «Manage», «Clear». */
+export function Footer(props: ComponentPropsWithoutRef<'div'>) {
+  return <div data-part="footer" {...props} />
+}
+
+/** Number of currently selected values, for counters in a header. */
+export function useSelectedCount(): number {
+  return useSelectedValues(useApi()).length
+}
+
 export interface ListProps<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>
   extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   readonly children?: (option: TOption, index: number) => ReactNode
@@ -416,6 +436,8 @@ const parts = {
   Loading,
   LoadError,
   LoadMore,
+  Header,
+  Footer,
   Label,
   Trigger,
   Value,
