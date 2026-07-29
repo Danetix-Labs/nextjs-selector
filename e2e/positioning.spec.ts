@@ -4,6 +4,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 const BASIC = 'Одиночный выбор'
 const VIRTUAL = 'Десять тысяч опций'
 const FORM = 'Форма и Server Action'
+const ASYNC = 'Асинхронная загрузка'
 
 function widget(page: Page, heading: string): Locator {
   return page.locator('section').filter({ hasText: heading }).locator('[data-part="root"]').first()
@@ -60,22 +61,39 @@ test.describe('позиционирование списка', () => {
   })
 
   test('у нижнего края список переворачивается вверх, а не уходит за экран', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 800 })
     await page.goto('/')
 
-    const root = widget(page, FORM)
+    const root = widget(page, ASYNC)
     const trigger = root.getByRole('combobox')
+    // Прокручиваем так, чтобы триггер оказался у самого низа вьюпорта.
     await trigger.scrollIntoViewIfNeeded()
     await trigger.click()
 
     const content = root.locator('[data-part="content"]')
     await expect(content).toBeVisible()
+    await expect(content).toHaveAttribute('data-side', 'top')
 
     const contentBox = await box(content)
+    const triggerBox = await box(trigger)
     const viewport = page.viewportSize()
     if (!viewport) throw new Error('нет размеров вьюпорта')
 
+    // Целиком на экране и выше триггера.
     expect(contentBox.y).toBeGreaterThanOrEqual(-1)
     expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(viewport.height + 1)
+    expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(triggerBox.y + 1)
+  })
+
+  test('когда места снизу хватает, список остаётся под триггером', async ({ page }) => {
+    await page.goto('/')
+
+    const content = widget(page, FORM).locator('[data-part="content"]')
+    const trigger = widget(page, FORM).getByRole('combobox')
+    await page.mouse.wheel(0, -2000)
+    await trigger.click()
+
+    await expect(content).toHaveAttribute('data-side', 'bottom')
   })
 
   test('список едет вместе с триггером при прокрутке', async ({ page }) => {

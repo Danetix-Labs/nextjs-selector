@@ -29,14 +29,16 @@
 }
 
 /*
- * Where the platform can place against an anchor, let it flip the box near the
- * viewport edge. The wrapper stays the fallback: `position-try-fallbacks` only
- * kicks in when the anchor resolves.
+ * Where the platform can place against an anchor, hand placement over to it:
+ * the box then flips above the trigger near the bottom of the viewport instead
+ * of running off the screen. The anchor resolves here because the listbox stays
+ * in normal flow — in the top layer it would not.
  */
-@supports (anchor-name: --probe) and (position-area: bottom) {
-  [data-part='content'] {
-    position-try-fallbacks: flip-block;
-  }
+/* Flipped above the trigger when the viewport leaves no room below. */
+[data-part='content'][data-side='top'] {
+  top: auto;
+  bottom: 100%;
+  margin-block: 0 var(--sel-offset, 0.25rem);
 }
 
 /* Only when the top layer is opted into — it costs the anchor. */

@@ -116,6 +116,40 @@ export function usePopoverProps<TValue>(
     return () => document.removeEventListener('pointerdown', onPointerDown, true)
   }, [enhanced, open, api])
 
+  // Flip above the trigger when there is no room below.
+  //
+  // Measured rather than left to `position-try-fallbacks`: that only applies
+  // once the anchor resolves, and an anchor that is a sibling rather than an
+  // ancestor does not resolve reliably — nor does it exist at all in browsers
+  // without anchor positioning.
+  const [side, setSide] = useState<'bottom' | 'top'>('bottom')
+
+  useEffect(() => {
+    if (!open) return
+
+    const place = () => {
+      const element = ref.current
+      const trigger = element?.closest('[data-part="root"]')?.querySelector('[data-part="trigger"]')
+      if (!element || !trigger) return
+
+      const anchor = trigger.getBoundingClientRect()
+      const needed = element.offsetHeight || element.getBoundingClientRect().height
+      const below = window.innerHeight - anchor.bottom
+      const above = anchor.top
+
+      setSide(below < needed && above > below ? 'top' : 'bottom')
+    }
+
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open])
+
   const setRef = useCallback((element: HTMLElement | null) => {
     ref.current = element
   }, [])
@@ -128,6 +162,7 @@ export function usePopoverProps<TValue>(
     popover: enhanced ? ('auto' as const) : undefined,
     'data-part': 'content',
     'data-state': open ? 'open' : 'closed',
+    'data-side': side,
     style: { positionAnchor: api.ids.anchor } as CSSProperties,
   }
 }
