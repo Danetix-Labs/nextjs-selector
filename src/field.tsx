@@ -71,13 +71,17 @@ export function SelectField<TValue>({
       {label === undefined ? null : <Label>{label}</Label>}
       {withChips ? <Chips /> : null}
 
-      <Trigger>
-        <Value placeholder={placeholder} />
+      {/* The clear button sits beside the trigger, never inside it:
+          a button nested in a button is invalid HTML. */}
+      <div data-part="control">
+        <Trigger>
+          <Value placeholder={placeholder} />
+          <span data-part="indicator-arrow" aria-hidden="true">
+            ▾
+          </span>
+        </Trigger>
         {clearable ? <ClearButton>×</ClearButton> : null}
-        <span data-part="indicator-arrow" aria-hidden="true">
-          ▾
-        </span>
-      </Trigger>
+      </div>
 
       <Content>
         {withSearch ? <Search aria-label={accessibleName} placeholder={searchPlaceholder} /> : null}

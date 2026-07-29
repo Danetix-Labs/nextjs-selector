@@ -25,6 +25,19 @@ function Harness() {
       <button type="button" {...useTriggerProps(api)} style={useAnchorStyle(api)}>
         Открыть
       </button>
+      <ul {...usePopoverProps(api, { topLayer: true })} />
+    </div>
+  )
+}
+
+function Plain() {
+  const api = useSelect({ options })
+
+  return (
+    <div>
+      <button type="button" {...useTriggerProps(api)}>
+        Открыть
+      </button>
       <ul {...usePopoverProps(api)} />
     </div>
   )
@@ -34,11 +47,14 @@ function stubPopoverApi() {
   const show = vi.fn()
   const hide = vi.fn()
   Object.assign(HTMLElement.prototype, { showPopover: show, hidePopover: hide })
+  // The top layer is only used when placement is available too.
+  Object.assign(globalThis, { CSS: { supports: () => true } })
 
   return { show, hide }
 }
 
 afterEach(() => {
+  Reflect.deleteProperty(globalThis, 'CSS')
   for (const key of ['showPopover', 'hidePopover'] as const) {
     // biome-ignore lint/performance/noDelete: restoring the prototype needs a real delete
     delete (HTMLElement.prototype as Partial<HTMLElement>)[key]
@@ -46,6 +62,13 @@ afterEach(() => {
 })
 
 describe('popover layer', () => {
+  it('по умолчанию верхний слой не используется', () => {
+    render(<Plain />)
+
+    const content = document.querySelector('[data-part="content"]') as HTMLElement
+    expect(content).not.toHaveAttribute('popover')
+  })
+
   it('в среде без Popover API работает как обычная разметка', () => {
     expect(supportsPopover()).toBe(false)
 

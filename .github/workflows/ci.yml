@@ -221,3 +221,8 @@ jobs:
         run: |
           npm install
           npx next build
+
+      # Browser-level checks: where the listbox actually lands is something
+      # jsdom cannot answer.
+      - run: npx playwright install chromium
+      - run: npm run test:e2e

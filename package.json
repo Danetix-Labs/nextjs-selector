@@ -81,7 +81,8 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:exports && npm run size",
     "prepublishOnly": "npm run typecheck && npm run build",
     "release": "npm run check && changeset publish",
-    "size": "size-limit"
+    "size": "size-limit",
+    "test:e2e": "playwright test"
   },
   "publishConfig": {
     "access": "public",
@@ -91,6 +92,7 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.6",
     "@changesets/cli": "^2.31.1",
+    "@playwright/test": "^1.62.0",
     "@size-limit/preset-small-lib": "^13.0.2",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",

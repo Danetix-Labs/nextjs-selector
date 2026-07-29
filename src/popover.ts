@@ -13,12 +13,21 @@ export function supportsPopover(): boolean {
   )
 }
 
-/** CSS anchor positioning — Baseline 2026. Absent in jsdom and older browsers. */
+/**
+ * CSS anchor positioning, including placement.
+ *
+ * `position-area` is checked alongside `anchor-name` on purpose: it shipped
+ * later (and under the earlier name `inset-area`), so browsers exist that
+ * accept the anchor but ignore the placement. Testing only for `anchor-name`
+ * lets the popover into the top layer with nothing positioning it, and the
+ * listbox lands in a corner of the viewport.
+ */
 export function supportsAnchorPositioning(): boolean {
   return (
     typeof CSS !== 'undefined' &&
     typeof CSS.supports === 'function' &&
-    CSS.supports('anchor-name', '--probe')
+    CSS.supports('anchor-name', '--probe') &&
+    CSS.supports('position-area', 'bottom')
   )
 }
 
@@ -34,12 +43,33 @@ interface ToggleEventLike extends Event {
  * is enough to hide it in CSS. Detection runs after mount so server and client
  * markup agree during hydration.
  */
-export function usePopoverProps<TValue>(api: SelectApi<TValue>) {
+export interface PopoverOptions {
+  /**
+   * Escape clipping ancestors by using the native popover.
+   *
+   * Costs the anchor: in the top layer the listbox can no longer position
+   * against its trigger, so place it yourself if you turn this on.
+   */
+  readonly topLayer?: boolean
+}
+
+export function usePopoverProps<TValue>(
+  api: SelectApi<TValue>,
+  { topLayer = false }: PopoverOptions = {},
+) {
   const open = useIsOpen(api)
   const ref = useRef<HTMLElement | null>(null)
   const [enhanced, setEnhanced] = useState(false)
 
-  useEffect(() => setEnhanced(supportsPopover()), [])
+  // Opt-in, and off by default. Moving the listbox to the top layer severs it
+  // from the trigger it anchors to: `position-area` resolves to `none` and the
+  // box lands in a corner of the viewport. Positioning against the root
+  // wrapper works in every browser, so that is the default; enable the top
+  // layer only when a clipping ancestor forces it.
+  useEffect(() => {
+    if (!topLayer) return
+    setEnhanced(supportsPopover())
+  }, [topLayer])
 
   useEffect(() => {
     const element = ref.current
@@ -66,6 +96,25 @@ export function usePopoverProps<TValue>(api: SelectApi<TValue>) {
     element.addEventListener('toggle', onToggle)
     return () => element.removeEventListener('toggle', onToggle)
   }, [enhanced, api])
+
+  // Without the native popover nothing dismisses the list on an outside click,
+  // so provide it ourselves.
+  useEffect(() => {
+    if (enhanced || !open) return
+
+    const onPointerDown = (event: Event) => {
+      const element = ref.current
+      const target = event.target
+      if (!element || !(target instanceof Node)) return
+      if (element.contains(target) || element.closest('[data-part="root"]')?.contains(target))
+        return
+
+      api.dispatch({ type: 'close' })
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+  }, [enhanced, open, api])
 
   const setRef = useCallback((element: HTMLElement | null) => {
     ref.current = element

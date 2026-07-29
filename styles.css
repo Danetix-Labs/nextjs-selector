@@ -15,34 +15,47 @@
   display: none;
 }
 
-/* Fallback: position against the root wrapper. */
+/*
+ * The listbox positions against the root wrapper. This needs no platform
+ * features and behaves the same everywhere.
+ */
 [data-part='content'] {
   position: absolute;
-  inset-inline-start: 0;
   top: 100%;
+  inset-inline-start: 0;
   z-index: 50;
   width: 100%;
   margin-block-start: var(--sel-offset, 0.25rem);
 }
 
-/* Where the platform has anchor positioning, let it place and flip the box. */
-@supports (anchor-name: --probe) {
+/*
+ * Where the platform can place against an anchor, let it flip the box near the
+ * viewport edge. The wrapper stays the fallback: `position-try-fallbacks` only
+ * kicks in when the anchor resolves.
+ */
+@supports (anchor-name: --probe) and (position-area: bottom) {
   [data-part='content'] {
-    position: absolute;
-    top: auto;
-    inset-inline-start: auto;
-    position-area: bottom span-inline-end;
     position-try-fallbacks: flip-block;
-    width: anchor-size(width);
   }
 }
 
-/* Native popover owns the top layer, so the wrapper stops being the reference. */
+/* Only when the top layer is opted into — it costs the anchor. */
 [data-part='content']:popover-open {
-  margin: var(--sel-offset, 0.25rem) 0 0;
+  margin: 0;
   border: 0;
   padding: 0;
   overflow: visible;
+}
+
+[data-part='control'] {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-part='control'] [data-part='trigger'] {
+  flex: 1;
+  min-width: 0;
 }
 
 [data-part='listbox'] {
