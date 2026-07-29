@@ -8,6 +8,7 @@ import {
   VirtualizedSelect,
 } from './demos'
 import { FormDemo } from './form-demo'
+import { IconGrid, StatusSelect } from './rich'
 
 /**
  * A Server Component: the page itself ships no JavaScript. Only the widgets
@@ -52,6 +53,21 @@ export default function Page() {
         <h2>Десять тысяч опций</h2>
         <p>В DOM попадает только видимое окно, подсветка держится в зоне видимости.</p>
         <VirtualizedSelect />
+      </section>
+
+      <section>
+        <h2>Иконки, галочка и подпись под пунктом</h2>
+        <p>Раскладка пункта — ваша разметка через функцию-рендер.</p>
+        <StatusSelect />
+      </section>
+
+      <section>
+        <h2>Сетка</h2>
+        <p>
+          Сетку задаёт ваш CSS; библиотеке нужно знать только число столбцов, чтобы стрелки ходили в
+          двух измерениях.
+        </p>
+        <IconGrid />
       </section>
 
       <section>

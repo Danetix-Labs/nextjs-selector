@@ -248,3 +248,42 @@ output {
   color: var(--muted);
   font-size: 0.875rem;
 }
+
+/* ── rich items ─────────────────────────────────────────────────────────── */
+
+[data-part="option-text"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+[data-part="option-description"] {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+[data-part="option-icon"] {
+  color: var(--muted);
+}
+
+[data-part="option"][data-selected] [data-part="option-icon"] {
+  color: var(--accent);
+}
+
+[data-part="indicator"] {
+  color: var(--accent);
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.25rem;
+  padding: 0.5rem;
+}
+
+.icon-grid [data-part="option"] {
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: 1.25rem;
+}

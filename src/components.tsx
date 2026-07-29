@@ -203,7 +203,10 @@ type RenderOption<TValue> = (option: SelectOption<TValue>, index: number) => Rea
 function defaultRender<TValue>(option: SelectOption<TValue>, index: number) {
   return (
     <Item key={String(option.value)} option={option} index={index}>
-      {option.label}
+      <span data-part="option-label">{option.label}</span>
+      {option.description === undefined ? null : (
+        <span data-part="option-description">{option.description}</span>
+      )}
     </Item>
   )
 }

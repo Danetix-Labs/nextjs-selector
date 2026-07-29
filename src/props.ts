@@ -88,12 +88,26 @@ function useKeyDown<TValue>(api: SelectApi<TValue>, textEntry: boolean) {
           dispatch({ type: 'move', delta: -PAGE_SIZE })
           return
 
+        // In a grid, up and down cross a whole row while left and right step
+        // by one. With a single column both collapse to the same thing.
         case 'ArrowDown':
+          event.preventDefault()
+          dispatch({ type: 'move', delta: api.columns })
+          return
+
+        case 'ArrowUp':
+          event.preventDefault()
+          dispatch({ type: 'move', delta: -api.columns })
+          return
+
+        case 'ArrowRight':
+          if (api.columns === 1 || textEntry) return
           event.preventDefault()
           dispatch({ type: 'move', delta: 1 })
           return
 
-        case 'ArrowUp':
+        case 'ArrowLeft':
+          if (api.columns === 1 || textEntry) return
           event.preventDefault()
           dispatch({ type: 'move', delta: -1 })
           return

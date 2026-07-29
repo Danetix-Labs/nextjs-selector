@@ -50,6 +50,13 @@ export interface UseSelectConfig<TValue> {
   readonly createLabel?: (query: string) => string
   /** Called instead of selecting when the create entry is chosen. */
   readonly onCreate?: (label: string) => void
+  /**
+   * Number of columns when the list is laid out as a grid.
+   *
+   * Only the keyboard needs to know: left and right step by one, up and down
+   * step by a whole row. The grid itself is your CSS.
+   */
+  readonly columns?: number
 }
 
 export interface SelectFlags {
@@ -73,6 +80,8 @@ export interface SelectApi<TValue> {
    */
   readonly getAllOptions: () => readonly SelectOption<TValue>[]
   readonly flags: SelectFlags
+  /** Columns in the visual layout; 1 means a plain vertical list. */
+  readonly columns: number
 }
 
 /** Actions that change the selection — blocked while read-only. */
@@ -118,6 +127,7 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
     creatable = false,
     createLabel = defaultCreateLabel,
     onCreate,
+    columns = 1,
   } = config
 
   const flags = useMemo<SelectFlags>(
@@ -265,7 +275,7 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const getAllOptions = useCallback(() => allOptionsRef.current, [])
 
   return useMemo(
-    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags }),
-    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags],
+    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags, columns }),
+    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags, columns],
   )
 }
