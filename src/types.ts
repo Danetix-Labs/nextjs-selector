@@ -3,6 +3,8 @@ export interface SelectOption<TValue = string> {
   readonly value: TValue
   readonly label: string
   readonly disabled?: boolean
+  /** Options sharing a group label are rendered together. */
+  readonly group?: string
 }
 
 /** Everything the machine needs to know to answer a keystroke. */

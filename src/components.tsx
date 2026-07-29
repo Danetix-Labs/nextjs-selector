@@ -1,8 +1,9 @@
 'use client'
 
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useId, useMemo } from 'react'
 
+import { groupOptions, type OptionGroup } from './core/grouping.js'
 import { useFormFields } from './form.js'
 import { usePopoverProps } from './popover.js'
 import {
@@ -15,6 +16,7 @@ import {
   useTriggerProps,
   useVisibleOptions,
 } from './props.js'
+import { Slot } from './slot.js'
 import type { SelectOption } from './types.js'
 import { type SelectApi, type UseSelectConfig, useSelect } from './useSelect.js'
 
@@ -76,8 +78,16 @@ export function Label({ children, ...props }: ComponentPropsWithoutRef<'label'>)
   )
 }
 
-export function Trigger(props: ComponentPropsWithoutRef<'button'>) {
-  return <button type="button" {...useTriggerProps(useApi())} {...props} />
+export interface TriggerProps extends ComponentPropsWithoutRef<'button'> {
+  /** Render the consumer's own element instead of a button. */
+  readonly asChild?: boolean
+}
+
+export function Trigger({ asChild, ...props }: TriggerProps) {
+  const triggerProps = useTriggerProps(useApi())
+  if (asChild) return <Slot {...triggerProps} {...props} />
+
+  return <button type="button" {...triggerProps} {...props} />
 }
 
 export interface ValueProps extends Omit<ComponentPropsWithoutRef<'span'>, 'children'> {
@@ -89,12 +99,12 @@ export interface ValueProps extends Omit<ComponentPropsWithoutRef<'span'>, 'chil
 export function Value({ placeholder, children, ...props }: ValueProps) {
   const api = useApi()
   const selected = useSelectedValues(api)
-  const visible = useVisibleOptions(api)
 
   const label =
     selected.length === 0
       ? placeholder
-      : visible
+      : api
+          .getAllOptions()
           .filter((option) => selected.includes(option.value))
           .map((option) => option.label)
           .join(', ')
@@ -103,6 +113,46 @@ export function Value({ placeholder, children, ...props }: ValueProps) {
     <span data-part="value" data-placeholder={selected.length === 0 ? '' : undefined} {...props}>
       {children ? children(selected) : label}
     </span>
+  )
+}
+
+export interface ChipsProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** Accessible name of a chip's remove button. */
+  readonly removeLabel?: (label: string) => string
+}
+
+/**
+ * Selected values as removable chips.
+ *
+ * Belongs next to the trigger, never inside it: a chip carries its own button,
+ * and nesting a button inside the trigger button is invalid HTML.
+ */
+export function Chips({ removeLabel, ...props }: ChipsProps) {
+  const api = useApi()
+  const selected = useSelectedValues(api)
+  const byValue = new Map(api.getAllOptions().map((option) => [option.value, option]))
+  if (selected.length === 0) return null
+
+  return (
+    <div data-part="chips" {...props}>
+      {selected.map((value) => {
+        const label = byValue.get(value)?.label ?? String(value)
+
+        return (
+          <span key={String(value)} data-part="chip">
+            {label}
+            <button
+              type="button"
+              data-part="chip-remove"
+              aria-label={removeLabel ? removeLabel(label) : `Убрать ${label}`}
+              onClick={() => api.dispatch({ type: 'remove', value })}
+            >
+              ×
+            </button>
+          </span>
+        )
+      })}
+    </div>
   )
 }
 
@@ -122,51 +172,99 @@ export function ClearButton(props: ComponentPropsWithoutRef<'button'>) {
   )
 }
 
-export function Content(props: ComponentPropsWithoutRef<'div'>) {
-  return <div {...usePopoverProps(useApi())} {...props} />
+export interface ContentProps extends ComponentPropsWithoutRef<'div'> {
+  readonly asChild?: boolean
+}
+
+export function Content({ asChild, ...props }: ContentProps) {
+  const popoverProps = usePopoverProps(useApi())
+  if (asChild) return <Slot {...popoverProps} {...props} />
+
+  return <div {...popoverProps} {...props} />
 }
 
 export function Search(props: ComponentPropsWithoutRef<'input'>) {
   return <input {...useSearchProps(useApi())} {...props} />
 }
 
-export interface ListProps<TValue> extends Omit<ComponentPropsWithoutRef<'ul'>, 'children'> {
+export interface ListProps<TValue> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   readonly children?: (option: SelectOption<TValue>, index: number) => ReactNode
 }
 
-/** The listbox itself — the element that directly owns the options. */
-export function List<TValue>({ children, ...props }: ListProps<TValue>) {
-  const api = useApi<TValue>()
-  const options = useVisibleOptions(api)
+type RenderOption<TValue> = (option: SelectOption<TValue>, index: number) => ReactNode
 
+function defaultRender<TValue>(option: SelectOption<TValue>, index: number) {
   return (
-    <ul {...useListboxProps(api)} {...props}>
-      {options.map((option, index) =>
-        children ? (
-          children(option, index)
-        ) : (
-          <Item key={String(option.value)} option={option} index={index}>
-            {option.label}
-          </Item>
-        ),
-      )}
-    </ul>
+    <Item key={String(option.value)} option={option} index={index}>
+      {option.label}
+    </Item>
   )
 }
 
-export interface ItemProps<TValue> extends Omit<ComponentPropsWithoutRef<'li'>, 'value'> {
-  readonly option: SelectOption<TValue>
-  readonly index: number
+/**
+ * The listbox itself — the element that directly owns the options.
+ *
+ * Rendered as a div rather than a list: ARIA wants listbox > group > option,
+ * and nested ul/li cannot express that without extra wrappers that break
+ * aria-required-parent.
+ */
+export function List<TValue>({ children, ...props }: ListProps<TValue>) {
+  const api = useApi<TValue>()
+  const options = useVisibleOptions(api)
+  const groups = useMemo(() => groupOptions(options), [options])
+  const render = (children ?? defaultRender) as RenderOption<TValue>
+  const isGrouped = groups.some((group) => group.label !== undefined)
+
+  return (
+    <div {...useListboxProps(api)} {...props}>
+      {isGrouped
+        ? groups.map((group) => (
+            <Group key={group.label ?? '\u0000'} group={group} render={render} />
+          ))
+        : options.map((option, index) => render(option, index))}
+    </div>
+  )
 }
 
-export function Item<TValue>({ option, index, ...props }: ItemProps<TValue>) {
+function Group<TValue>({
+  group,
+  render,
+}: {
+  readonly group: OptionGroup<TValue>
+  readonly render: RenderOption<TValue>
+}) {
+  const labelId = useId()
+
+  if (group.label === undefined) {
+    return <>{group.options.map(({ option, index }) => render(option, index))}</>
+  }
+
+  return (
+    <div role="group" aria-labelledby={labelId} data-part="group">
+      <div id={labelId} data-part="group-label">
+        {group.label}
+      </div>
+      {group.options.map(({ option, index }) => render(option, index))}
+    </div>
+  )
+}
+
+export interface ItemProps<TValue> extends Omit<ComponentPropsWithoutRef<'div'>, 'value'> {
+  readonly option: SelectOption<TValue>
+  readonly index: number
+  /** Render the consumer's own element instead of a div. */
+  readonly asChild?: boolean
+}
+
+export function Item<TValue>({ option, index, asChild, ...props }: ItemProps<TValue>) {
   const optionProps = useOptionProps(useApi<TValue>(), {
     index,
     value: option.value,
     disabled: option.disabled,
   })
+  if (asChild) return <Slot {...optionProps} {...props} />
 
-  return <li {...optionProps} {...props} />
+  return <div {...optionProps} {...props} />
 }
 
 /** Rendered only while its enclosing option is selected. */
@@ -191,6 +289,7 @@ export function Empty(props: ComponentPropsWithoutRef<'div'>) {
 
 export const Select = {
   Root,
+  Chips,
   Label,
   Trigger,
   Value,

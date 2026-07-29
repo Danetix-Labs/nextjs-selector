@@ -39,6 +39,11 @@ export interface SelectApi<TValue> {
   readonly dispatch: (action: SelectAction<TValue>) => void
   /** Options after filtering, exactly as keyboard navigation indexes them. */
   readonly getVisibleOptions: () => readonly SelectOption<TValue>[]
+  /**
+   * Every option, filtering ignored. Selected values must keep their labels
+   * while a search narrows the list.
+   */
+  readonly getAllOptions: () => readonly SelectOption<TValue>[]
 }
 
 const selectQuery = <TValue>(state: SelectState<TValue>): string => state.query
@@ -77,6 +82,9 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   // Refs keep `dispatch` identity-stable while still reading fresh values.
   const ctxRef = useRef<SelectContext<TValue>>({ options: visibleOptions, multiple })
   ctxRef.current = { options: visibleOptions, multiple }
+
+  const allOptionsRef = useRef(options)
+  allOptionsRef.current = options
 
   const onValueChangeRef = useRef(onValueChange)
   onValueChangeRef.current = onValueChange
@@ -121,9 +129,10 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   )
 
   const getVisibleOptions = useCallback(() => ctxRef.current.options, [])
+  const getAllOptions = useCallback(() => allOptionsRef.current, [])
 
   return useMemo(
-    () => ({ store, ids, multiple, dispatch, getVisibleOptions }),
-    [store, ids, multiple, dispatch, getVisibleOptions],
+    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions }),
+    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions],
   )
 }

@@ -5,8 +5,11 @@
 // `nextjs-selector/core` for the framework-free state machine.
 
 export {
+  Chips,
+  type ChipsProps,
   ClearButton,
   Content,
+  type ContentProps,
   Empty,
   Item,
   ItemIndicator,
@@ -19,7 +22,9 @@ export {
   Search,
   Select,
   Trigger,
+  type TriggerProps,
   Value,
   type ValueProps,
 } from './components.js'
 export * from './headless.js'
+export { mergeProps, Slot, type SlotProps } from './slot.js'
