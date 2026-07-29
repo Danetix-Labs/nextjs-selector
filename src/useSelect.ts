@@ -35,6 +35,14 @@ export interface UseSelectConfig<TValue> {
   readonly readOnly?: boolean
   readonly required?: boolean
   readonly invalid?: boolean
+  /**
+   * Fetches options for a query. When present, `options` seeds the initial
+   * list and local filtering is skipped — the source is expected to have
+   * filtered already.
+   */
+  readonly loadOptions?: (query: string) => Promise<readonly SelectOption<TValue>[]>
+  /** Delay before an async load fires. Defaults to 300 ms. */
+  readonly debounceMs?: number
 }
 
 export interface SelectFlags {
@@ -94,6 +102,8 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
     readOnly = false,
     required = false,
     invalid = false,
+    loadOptions,
+    debounceMs = 300,
   } = config
 
   const flags = useMemo<SelectFlags>(
@@ -102,21 +112,71 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   )
 
   const id = useId()
-  const [store] = useState(() => createStore(initialState<TValue>(value ?? defaultValue ?? [])))
+  const [store] = useState(() =>
+    createStore(initialState<TValue>(value ?? defaultValue ?? [], options)),
+  )
 
   const query = useStoreSlice(store, selectQuery)
+  const [loadedOptions, setLoadedOptions] = useState<readonly SelectOption<TValue>[] | null>(null)
+
+  const loadRef = useRef(loadOptions)
+  loadRef.current = loadOptions
+
+  // Async source: debounce the query, drop results that arrive out of order.
+  useEffect(() => {
+    if (!loadRef.current) return
+
+    let current = true
+    const timer = setTimeout(() => {
+      store.dispatch((state) =>
+        reduce(state, { type: 'setStatus', status: 'loading' }, ctxRef.current),
+      )
+
+      loadRef.current?.(query).then(
+        (result) => {
+          if (!current) return
+          setLoadedOptions(result)
+          store.dispatch((state) => reduce(state, { type: 'optionsLoaded' }, ctxRef.current))
+        },
+        () => {
+          if (!current) return
+          store.dispatch((state) =>
+            reduce(state, { type: 'setStatus', status: 'error' }, ctxRef.current),
+          )
+        },
+      )
+    }, debounceMs)
+
+    return () => {
+      current = false
+      clearTimeout(timer)
+    }
+  }, [query, debounceMs, store])
+
+  const isAsync = loadOptions !== undefined
+  const sourceOptions = isAsync ? (loadedOptions ?? options) : options
 
   const visibleOptions = useMemo(
-    () => (query === '' ? options : options.filter((option) => filter(option, query))),
-    [options, query, filter],
+    () =>
+      isAsync || query === ''
+        ? sourceOptions
+        : sourceOptions.filter((option) => filter(option, query)),
+    [sourceOptions, query, filter, isAsync],
   )
 
   // Refs keep `dispatch` identity-stable while still reading fresh values.
   const ctxRef = useRef<SelectContext<TValue>>({ options: visibleOptions, multiple })
   ctxRef.current = { options: visibleOptions, multiple }
 
-  const allOptionsRef = useRef(options)
-  allOptionsRef.current = options
+  const allOptionsRef = useRef(sourceOptions)
+  allOptionsRef.current = sourceOptions
+
+  // Publish the visible list so subscribers read it from a single source.
+  useEffect(() => {
+    store.dispatch((state) =>
+      reduce(state, { type: 'setVisible', options: visibleOptions }, ctxRef.current),
+    )
+  }, [visibleOptions, store])
 
   const onValueChangeRef = useRef(onValueChange)
   onValueChangeRef.current = onValueChange

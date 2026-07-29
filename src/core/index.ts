@@ -2,7 +2,13 @@
 // Deliberately carries no 'use client' — this code runs anywhere, including
 // inside Server Components.
 
-export type { SelectAction, SelectContext, SelectOption, SelectState } from '../types.js'
+export type {
+  SelectAction,
+  SelectContext,
+  SelectOption,
+  SelectState,
+  SelectStatus,
+} from '../types.js'
 export { type GroupedOption, groupOptions, type OptionGroup } from './grouping.js'
 export { initialState, NO_ACTIVE, reduce } from './reducer.js'
 export { createStore, type Listener, type Store } from './store.js'

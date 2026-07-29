@@ -17,6 +17,8 @@ export {
   Label,
   List,
   type ListProps,
+  LoadError,
+  Loading,
   Root,
   type RootProps,
   Search,

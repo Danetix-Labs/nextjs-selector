@@ -13,8 +13,28 @@ export interface SelectContext<TValue> {
   readonly multiple: boolean
 }
 
+/** Lifecycle of an async option load. */
+export type SelectStatus = 'idle' | 'loading' | 'error'
+
 export interface SelectState<TValue> {
   readonly open: boolean
+  readonly status: SelectStatus
+  /**
+   * Bumped whenever the option source is replaced.
+   *
+   * Status alone cannot signal this: a promise that resolves in a microtask
+   * collapses loading → idle before React reads a snapshot, so the change
+   * becomes invisible. A counter always moves.
+   */
+  readonly version: number
+  /**
+   * Options currently on screen.
+   *
+   * Kept in the store rather than behind a ref: useSyncExternalStore renders
+   * subscribers synchronously on notification, so a subscriber can run before
+   * the owner has refreshed its refs and would read stale data.
+   */
+  readonly visible: readonly SelectOption<TValue>[]
   readonly query: string
   /** Index into the filtered options, or -1 when nothing is active. */
   readonly activeIndex: number
@@ -34,3 +54,6 @@ export type SelectAction<TValue> =
   | { readonly type: 'remove'; readonly value: TValue }
   | { readonly type: 'removeLast' }
   | { readonly type: 'clear' }
+  | { readonly type: 'setStatus'; readonly status: SelectStatus }
+  | { readonly type: 'optionsLoaded' }
+  | { readonly type: 'setVisible'; readonly options: readonly SelectOption<TValue>[] }

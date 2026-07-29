@@ -5,7 +5,7 @@ import { useCallback, useMemo, useRef } from 'react'
 
 import { appendToBuffer, emptyBuffer, matchPrefix } from './core/typeahead.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
-import type { SelectOption, SelectState } from './types.js'
+import type { SelectOption, SelectState, SelectStatus } from './types.js'
 import type { SelectApi } from './useSelect.js'
 
 /** Present when true, absent when false — the shape CSS attribute selectors expect. */
@@ -45,9 +45,17 @@ export function useQuery<TValue>(api: SelectApi<TValue>): string {
  * Subscribing to the query here is what makes filtering reactive.
  */
 export function useVisibleOptions<TValue>(api: SelectApi<TValue>): readonly SelectOption<TValue>[] {
-  useQuery(api)
+  return useStoreSlice(
+    api.store,
+    useCallback((state: SelectState<TValue>) => state.visible, []),
+  )
+}
 
-  return api.getVisibleOptions()
+export function useStatus<TValue>(api: SelectApi<TValue>): SelectStatus {
+  return useStoreSlice(
+    api.store,
+    useCallback((state: SelectState<TValue>) => state.status, []),
+  )
 }
 
 function useActiveIndex<TValue>(api: SelectApi<TValue>): number {

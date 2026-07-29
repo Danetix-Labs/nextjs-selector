@@ -2,8 +2,19 @@ import type { SelectAction, SelectContext, SelectOption, SelectState } from '../
 
 export const NO_ACTIVE = -1
 
-export function initialState<TValue>(selected: readonly TValue[] = []): SelectState<TValue> {
-  return { open: false, query: '', activeIndex: NO_ACTIVE, selected }
+export function initialState<TValue>(
+  selected: readonly TValue[] = [],
+  visible: readonly SelectOption<TValue>[] = [],
+): SelectState<TValue> {
+  return {
+    open: false,
+    status: 'idle',
+    version: 0,
+    visible,
+    query: '',
+    activeIndex: NO_ACTIVE,
+    selected,
+  }
 }
 
 /**
@@ -142,5 +153,19 @@ export function reduce<TValue>(
 
     case 'clear':
       return state.selected.length === 0 ? state : { ...state, selected: [] }
+
+    case 'setStatus':
+      return action.status === state.status ? state : { ...state, status: action.status }
+
+    case 'setVisible':
+      return action.options === state.visible ? state : { ...state, visible: action.options }
+
+    case 'optionsLoaded':
+      return {
+        ...state,
+        status: 'idle',
+        version: state.version + 1,
+        activeIndex: state.open ? firstSelectable(options) : state.activeIndex,
+      }
   }
 }

@@ -2,19 +2,19 @@
   {
     "name": "core (без React)",
     "path": "dist/core/index.js",
-    "limit": "1.3 kB",
+    "limit": "1.4 kB",
     "ignore": ["react"]
   },
   {
     "name": "headless",
     "path": "dist/headless.js",
-    "limit": "3.6 kB",
+    "limit": "4 kB",
     "ignore": ["react"]
   },
   {
     "name": "полный вход",
     "path": "dist/index.js",
-    "limit": "5 kB",
+    "limit": "5.5 kB",
     "ignore": ["react"]
   }
 ]

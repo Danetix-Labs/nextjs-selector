@@ -18,11 +18,18 @@ export {
   useQuery,
   useSearchProps,
   useSelectedValues,
+  useStatus,
   useTriggerProps,
   useVisibleOptions,
 } from './props.js'
 export { useStoreSlice } from './react/useStoreSlice.js'
-export type { SelectAction, SelectContext, SelectOption, SelectState } from './types.js'
+export type {
+  SelectAction,
+  SelectContext,
+  SelectOption,
+  SelectState,
+  SelectStatus,
+} from './types.js'
 export {
   type SelectApi,
   type SelectFlags,

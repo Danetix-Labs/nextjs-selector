@@ -13,6 +13,7 @@ import {
   useOptionProps,
   useSearchProps,
   useSelectedValues,
+  useStatus,
   useTriggerProps,
   useVisibleOptions,
 } from './props.js'
@@ -278,11 +279,29 @@ export function ItemIndicator({
   return <span data-part="indicator" aria-hidden="true" {...props} />
 }
 
+/** Rendered while an async load is in flight. */
+export function Loading(props: ComponentPropsWithoutRef<'div'>) {
+  const status = useStatus(useApi())
+  if (status !== 'loading') return null
+
+  return <div data-part="loading" role="status" aria-live="polite" {...props} />
+}
+
+/** Rendered when the last async load failed. */
+export function LoadError(props: ComponentPropsWithoutRef<'div'>) {
+  const status = useStatus(useApi())
+  if (status !== 'error') return null
+
+  return <div data-part="error" role="status" aria-live="polite" {...props} />
+}
+
 export function Empty(props: ComponentPropsWithoutRef<'div'>) {
   const api = useApi()
   const open = useIsOpen(api)
   const visible = useVisibleOptions(api)
-  if (!open || visible.length > 0) return null
+  const status = useStatus(api)
+  // Silence during a load: "nothing found" would be a lie in flight.
+  if (!open || visible.length > 0 || status !== 'idle') return null
 
   return <div data-part="empty" {...props} />
 }
@@ -290,6 +309,8 @@ export function Empty(props: ComponentPropsWithoutRef<'div'>) {
 export const Select = {
   Root,
   Chips,
+  Loading,
+  LoadError,
   Label,
   Trigger,
   Value,
