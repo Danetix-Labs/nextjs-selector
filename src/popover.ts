@@ -155,13 +155,33 @@ export function usePopoverProps<TValue, TOption extends SelectOption<TValue>>(
       setSide(below < needed && above > below ? 'top' : 'bottom')
     }
 
-    place()
-    window.addEventListener('resize', place)
-    window.addEventListener('scroll', place, true)
+    // Throttled to one measurement per frame.
+    //
+    // `place` reads getBoundingClientRect, which forces layout; on a capturing
+    // scroll listener that fires far more often than the screen refreshes, so
+    // unthrottled it would measure several times per painted frame for a
+    // result that can only change once.
+    let frame = 0
+    const schedule = () => {
+      if (frame !== 0) return
+
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        place()
+      })
+    }
+
+    // First measurement waits for a frame too: right after opening the list
+    // may not be laid out yet, and a height of zero reads as «there is room
+    // below» — Firefox flipped nothing at all because of it.
+    schedule()
+    window.addEventListener('resize', schedule)
+    window.addEventListener('scroll', schedule, true)
 
     return () => {
-      window.removeEventListener('resize', place)
-      window.removeEventListener('scroll', place, true)
+      if (frame !== 0) cancelAnimationFrame(frame)
+      window.removeEventListener('resize', schedule)
+      window.removeEventListener('scroll', schedule, true)
     }
   }, [open])
 

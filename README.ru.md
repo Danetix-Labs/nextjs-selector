@@ -1,0 +1,416 @@
+# nextjs-selector
+
+[![CI](https://github.com/Danetix-Labs/nextjs-selector/actions/workflows/ci.yml/badge.svg)](https://github.com/Danetix-Labs/nextjs-selector/actions/workflows/ci.yml)
+
+## Установка
+
+```bash
+npm install nextjs-selector
+```
+
+Требования: Node.js >= 18.17.0.
+
+## Совместимость
+
+CI проверяет на каждом push и PR:
+
+| Проверка | Покрытие |
+| --- | --- |
+| Установка тарбола в чистый проект | Node.js 18, 20, 22, 24 — ESM и CJS |
+| Резолв типов | `node10`, `node16` (CJS и ESM), `bundler` |
+| Условия экспорта | `import`, `require`, fallback `default` под `--conditions=react-server` |
+| Сборка Next.js | 14 (webpack, React 18), 15 (webpack, React 19), 16 (Turbopack и `--webpack`, React 19.2) |
+| Роутеры Next.js | App Router (Server + Client Components) и Pages Router |
+
+## Точки входа
+
+| Импорт | Что внутри | Где работает |
+| --- | --- | --- |
+| `nextjs-selector` | компоненты + весь headless-слой | Client Components |
+| `nextjs-selector/headless` | хуки без разметки | Client Components |
+| `nextjs-selector/core` | чистый автомат состояния, без React | где угодно, включая RSC |
+
+`core` не содержит ни `'use client'`, ни импортов React, поэтому фильтрацию,
+переходы состояния и расчёт окна можно выполнять на сервере. CI проверяет это
+запуском под `--conditions=react-server`.
+
+## Использование
+
+### Обычный случай — один компонент
+
+```tsx
+'use client'
+
+import { Select, MultiSelect } from 'nextjs-selector'
+
+<Select options={options} label="Фреймворк" placeholder="Выберите" clearable />
+
+<MultiSelect
+  options={countries}
+  label="Страны"
+  searchable
+  itemHeight={34}   // включает виртуализацию
+/>
+```
+
+Обязателен только `options`. Поиск, чипы, пустое состояние, индикаторы
+загрузки и ошибки подключаются флагами.
+
+### Составные компоненты
+
+Когда нужна другая раскладка — те же части под тем же именем.
+
+```tsx
+'use client'
+
+import { Select } from 'nextjs-selector'
+
+const options = [
+  { value: 'react', label: 'React' },
+  { value: 'vue', label: 'Vue' },
+  { value: 'svelte', label: 'Svelte', disabled: true },
+]
+
+export function Picker() {
+  return (
+    <Select.Root options={options} multiple name="stack">
+      <Select.Label>Технологии</Select.Label>
+      <Select.Trigger>
+        <Select.Value placeholder="Выберите" />
+        <Select.ClearButton>×</Select.ClearButton>
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Search aria-label="Поиск" />
+        <Select.Empty>Ничего не найдено</Select.Empty>
+        <Select.List />
+      </Select.Content>
+    </Select.Root>
+  )
+}
+```
+
+`name` включает скрытые поля формы: значение видно `FormData`, обычной отправке
+и Server Actions React 19 — без JavaScript на принимающей стороне.
+
+Части подменяются по одной. `Select.List` принимает функцию, если нужен свой
+рендер строки:
+
+```tsx
+<Select.List>
+  {(option, index) => (
+    <Select.Item option={option} index={index}>
+      <Select.ItemIndicator option={option}>✓</Select.ItemIndicator>
+      {option.label}
+    </Select.Item>
+  )}
+</Select.List>
+```
+
+### Headless
+
+Когда нужна своя разметка целиком — логика, клавиатура и ARIA без единого
+элемента от библиотеки.
+
+```tsx
+'use client'
+
+import {
+  useSelect, useTriggerProps, useListboxProps, useOptionProps,
+  useSearchProps, useLabelProps, useSelectedValues,
+} from 'nextjs-selector'
+
+const options = [
+  { value: 'react', label: 'React' },
+  { value: 'vue', label: 'Vue' },
+  { value: 'svelte', label: 'Svelte', disabled: true },
+]
+
+function Option({ api, index, option }) {
+  return <li {...useOptionProps(api, { index, value: option.value, disabled: option.disabled })}>
+    {option.label}
+  </li>
+}
+
+export function Picker() {
+  const api = useSelect({ options, multiple: true })
+  const selected = useSelectedValues(api)
+
+  return (
+    <div>
+      <label {...useLabelProps(api)}>Технологии</label>
+      <button type="button" {...useTriggerProps(api)}>{selected.join(', ') || 'Выберите'}</button>
+      <input {...useSearchProps(api)} />
+      <ul {...useListboxProps(api)}>
+        {api.getVisibleOptions().map((option, index) => (
+          <Option key={option.value} api={api} index={index} option={option} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### Стилизация
+
+Состояние выражено data-атрибутами, поэтому подходит любой способ писать стили —
+Tailwind не обязателен.
+
+```css
+[data-part='option'][data-highlighted] { background: #eef; }
+[data-part='option'][data-selected]    { font-weight: 600; }
+[data-part='option'][data-disabled]    { opacity: 0.5; }
+[data-part='trigger'][data-state='open'] { border-color: #66f; }
+```
+
+```tsx
+<li {...props} className="data-highlighted:bg-indigo-50 data-selected:font-semibold" />
+```
+
+Части: `label`, `trigger`, `search`, `listbox`, `option`.
+Состояния: `data-state="open|closed"`, `data-highlighted`, `data-selected`,
+`data-disabled`, `data-multiple`.
+
+### Возможности
+
+| Что | Как |
+| --- | --- |
+| Одиночный и множественный выбор | `multiple` |
+| Поиск | `Select.Search`, свой `filter` |
+| Группы | поле `group` в опции |
+| Чипы с удалением | `Select.Chips` |
+| Создание на лету | `creatable`, `onCreate` |
+| Асинхронная загрузка | `loadOptions`, `debounceMs`, `Select.Loading`, `Select.LoadError` |
+| Большие списки | `Select.Virtualized` или хук `useVirtual` |
+| Состояния | `disabled`, `readOnly`, `required`, `invalid` |
+| Формы и Server Actions | `name` на `Select.Root` |
+| Подмена элемента | `asChild` на `Trigger`, `Item`, `Content` |
+| Контролируемый режим | `value` + `onValueChange` |
+
+### Позиционирование
+
+`usePopoverProps` использует нативный Popover API и CSS anchor positioning —
+браузер сам даёт top layer, закрытие по клику вне и по Esc. Где API нет, список
+рендерится в обычном потоке, а `data-state` скрывает его в CSS: чистое
+прогрессивное улучшение, без JS-вычислений позиции и без floating-ui.
+
+```tsx
+<button {...useTriggerProps(api)} style={useAnchorStyle(api)}>…</button>
+<ul {...usePopoverProps(api)}>…</ul>
+```
+
+Опционально — базовые стили позиционирования:
+
+```ts
+import 'nextjs-selector/styles.css'
+```
+
+### Клавиатура
+
+По паттерну APG combobox: `↑↓`, `Home`/`End`, `PageUp`/`PageDown`, `Enter`,
+`Esc`, `Tab`, typeahead по набранным буквам (повтор буквы перебирает опции на
+неё, как в нативном `<select>`), `Backspace` снимает последнее значение
+в множественном режиме.
+
+### Большие списки
+
+```tsx
+const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
+```
+
+В DOM попадает только видимое окно плюс overscan, подсветка удерживается
+в зоне видимости. Тест поднимает 10 000 опций и проверяет, что узлов меньше 25.
+
+Строки разной высоты — вместо `itemHeight` передайте оценку:
+
+```tsx
+<Select.Virtualized estimateHeight={44} />
+```
+
+Строки сообщают настоящую высоту после отрисовки; оценка только задаёт
+начальное положение полосы прокрутки.
+
+Контейнеру нужна заданная высота — окно вычисляется по измеренному вьюпорту,
+и мерить нечего, пока высота не задана:
+
+```tsx
+<Select.Virtualized itemHeight={34} style={{ height: '15rem' }} />
+```
+
+### Порядок, отмена и кеш
+
+```tsx
+<Select.Chips reorderable />       {/* перетаскивание и Alt+стрелки */}
+<Select.UndoRemove>Вернуть</Select.UndoRemove>
+<Select options={[]} loadOptions={search} cache />
+```
+
+Перестановка чипов работает и мышью, и с клавиатуры — библиотеки, делающие
+её только указателем, оставляют часть пользователей за бортом. Отмена
+предлагается только сразу после удаления: любое другое изменение выбора
+снимает предложение. Кеш ответов выключен по умолчанию — только вы знаете,
+как долго ваши данные остаются верными.
+
+### Табы и инлайн-редактирование
+
+Это композиция, а не возможность библиотеки. Табы — смена набора `options`
+по внешнему состоянию; редактирование выбранного — ваша форма рядом со
+списком. Специального API нет намеренно: он свёлся бы к прокидыванию ваших
+же данных через чужой слой.
+
+### Каскадный выбор
+
+Связанные списки — это композиция, а не отдельная возможность: значение
+верхнего задаёт опции нижнего.
+
+```tsx
+const [country, setCountry] = useState<string>()
+
+<Select
+  options={countries}
+  label="Страна"
+  onValueChange={([value]) => {
+    setCountry(value)
+    setCity(undefined)   // сбросить нижний уровень
+  }}
+/>
+<Select
+  options={country ? citiesOf(country) : []}
+  label="Город"
+  disabled={!country}
+  value={city ? [city] : []}
+  onValueChange={([value]) => setCity(value)}
+/>
+```
+
+Специального API для этого нет намеренно: сброс нижних уровней и правила
+зависимостей у всех разные, а `value` с `onValueChange` уже дают всё нужное.
+
+### Слоты вокруг списка
+
+Закреплённые области над и под списком — счётчики, подсказки, действия:
+
+```tsx
+<MultiSelect
+  options={options}
+  label="Теги"
+  header={<span>Выбрано: {count}</span>}
+  footer={<button onClick={createTag}>Создать тег</button>}
+/>
+```
+
+Они намеренно вне листбокса: тот может содержать только опции и группы,
+иначе ломается `aria-required-children`.
+
+### Подгрузка страницами
+
+Источник может отдавать курсор — тогда список догружается по мере прокрутки:
+
+```tsx
+<Select
+  options={[]}
+  loadOptions={async (query, cursor) => {
+    const page = await api.search(query, cursor)
+    return { options: page.items, nextCursor: page.next }
+  }}
+/>
+```
+
+Отсутствие `nextCursor` завершает пагинацию. Массив вместо объекта означает
+«это всё» — старый контракт продолжает работать.
+
+### Мобильные: нижняя шторка
+
+На узком экране выпадающий список — неудачная форма: мелкие цели и список,
+воюющий с экранной клавиатурой. Шторка это чинит, но включается осознанно —
+для каждого виджета отдельно:
+
+```tsx
+<Select options={options} label="Статус" sheet />
+<Select options={options} label="Статус" sheet sheetMedia="(max-width: 480px)" />
+```
+
+По умолчанию выключено. Разметка и поведение не меняются — меняется только
+размещение, о чём сообщает `data-mode="sheet" | "dropdown"`.
+
+### Производительность
+
+Замеры в Chromium на демо-странице, список из 10 000 опций:
+
+| Что | Результат |
+| --- | --- |
+| Открытие списка | 44 мс |
+| Узлов в DOM | 14 |
+| На нажатие стрелки | 3.2 мс |
+| Фильтрация по запросу | 19 мс |
+
+Для сравнения: `react-select` на этом объёме открывает меню секундами.
+Пороги в CI выставлены с большим запасом — они ловят регрессию на порядок,
+а не колебания загруженного раннера.
+
+
+Состояние живёт во внешнем store, а компоненты подписываются на отдельные
+булевы срезы через `useSyncExternalStore`. Перемещение подсветки перерисовывает
+две опции — ту, что её теряет, и ту, что получает, — независимо от длины списка.
+Это закреплено тестом.
+
+### Доступность
+
+Тесты прогоняют axe в закрытом и открытом состоянии, с группами, чипами,
+виртуализацией, состояниями и при `dir="rtl"`. Снимки дерева доступности
+в реальном браузере проверяют имена, состояния и живые области.
+
+`Select.Announcer` озвучивает то, что зрячий видит: сколько вариантов нашлось
+и что выбрано или снято. В готовом компоненте он подключён по умолчанию.
+
+Ручной прогон в скринридерах — [ACCESSIBILITY.md](./ACCESSIBILITY.md).
+Пока он не пройден, соответствие WCAG 2.2 AA не заявляется. Автоматический аудит
+ловит структурные ошибки ARIA, но не заменяет проверку живым скринридером:
+прогонов в NVDA, JAWS и VoiceOver ещё не было, поэтому соответствие WCAG 2.2 AA
+пока не заявляется.
+
+## Демо
+
+```bash
+cd examples/demo
+npm install
+npm run dev
+```
+
+Приложение на Next.js 16 со всеми возможностями: поиск, группы, чипы,
+асинхронная загрузка, создание опций, виртуализация десяти тысяч строк,
+состояния, `asChild` и форма с Server Action. Стили — обычный CSS по
+data-атрибутам, без Tailwind.
+
+## Разработка
+
+```bash
+npm install
+npm run dev            # сборка в watch-режиме
+npm run test           # vitest run
+npm run lint           # biome check
+npm run format         # biome check --write
+npm run typecheck      # tsc --noEmit
+npm run build          # сборка dist/ (ESM + CJS + типы)
+npm run check:exports  # publint + are-the-types-wrong
+npm run check          # всё вышеперечисленное разом
+```
+
+Сборка требует Node.js `^22.18.0 || >=24.11.0` (требование tsdown).
+
+> `check:exports` вызывает `npm pack`, поэтому его нельзя запускать из
+> `prepublishOnly` — вложенный `npm pack` внутри `npm publish` ломается.
+> Проверки живут в отдельном скрипте `check` и вызываются до публикации.
+
+## Релиз
+
+Версионирование через [Changesets](https://github.com/changesets/changesets):
+
+```bash
+npx changeset          # описать изменение
+npx changeset version  # поднять версию и обновить CHANGELOG
+npm run release        # check + changeset publish
+```
+
+## Лицензия
+
+[MIT](./LICENSE) © Danetix-Labs
