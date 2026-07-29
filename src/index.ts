@@ -29,6 +29,7 @@ export {
   SelectAllButton,
   Trigger,
   type TriggerProps,
+  UndoRemove,
   useSelectedCount,
   Value,
   type ValueProps,

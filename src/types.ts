@@ -53,6 +53,13 @@ export interface SelectState<TValue, TOption extends SelectOption<TValue> = Sele
   /** Index into the filtered options, or -1 when nothing is active. */
   readonly activeIndex: number
   readonly selected: readonly TValue[]
+  /**
+   * The last removal, kept so it can be taken back.
+   *
+   * Cleared by any other change to the selection: an undo that resurrects
+   * something the user forgot about is worse than no undo.
+   */
+  readonly undo: { readonly value: TValue; readonly index: number } | null
 }
 
 export type SelectAction<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>> =
@@ -66,6 +73,8 @@ export type SelectAction<TValue, TOption extends SelectOption<TValue> = SelectOp
   | { readonly type: 'select'; readonly value: TValue }
   | { readonly type: 'selectActive' }
   | { readonly type: 'selectAll' }
+  | { readonly type: 'reorder'; readonly from: number; readonly to: number }
+  | { readonly type: 'undoRemove' }
   | { readonly type: 'remove'; readonly value: TValue }
   | { readonly type: 'removeLast' }
   | { readonly type: 'clear' }

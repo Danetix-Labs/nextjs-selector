@@ -1,7 +1,7 @@
 'use client'
 
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { createContext, useContext, useEffect, useId, useMemo, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef } from 'react'
 
 import { groupOptions, type OptionGroup } from './core/grouping.js'
 import { highlightMatches } from './core/highlight.js'
@@ -20,8 +20,9 @@ import {
   useTriggerProps,
   useVisibleOptions,
 } from './props.js'
+import { useStoreSlice } from './react/useStoreSlice.js'
 import { Slot } from './slot.js'
-import type { SelectOption } from './types.js'
+import type { SelectOption, SelectState } from './types.js'
 import { type SelectApi, type UseSelectConfig, useSelect } from './useSelect.js'
 import { useVirtual } from './virtual.js'
 
@@ -119,14 +120,13 @@ export function Value({ placeholder, children, ...props }: ValueProps) {
   const api = useApi()
   const selected = useSelectedValues(api)
 
+  // Mapped over the selection, not filtered from the options: the order the
+  // user picked in is meaningful, and reordering must show up here.
+  const byValue = new Map(api.getAllOptions().map((option) => [option.value, option.label]))
   const label =
     selected.length === 0
       ? placeholder
-      : api
-          .getAllOptions()
-          .filter((option) => selected.includes(option.value))
-          .map((option) => option.label)
-          .join(', ')
+      : selected.map((value) => byValue.get(value) ?? String(value)).join(', ')
 
   return (
     <span data-part="value" data-placeholder={selected.length === 0 ? '' : undefined} {...props}>
@@ -138,6 +138,13 @@ export function Value({ placeholder, children, ...props }: ValueProps) {
 export interface ChipsProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** Accessible name of a chip's remove button. */
   readonly removeLabel?: (label: string) => string
+  /**
+   * Lets chips be dragged into a different order.
+   *
+   * Uses native HTML drag and drop — no dependency, and keyboard users get the
+   * same reordering through Alt+Arrow, which pointer-only libraries skip.
+   */
+  readonly reorderable?: boolean
 }
 
 /**
@@ -146,19 +153,54 @@ export interface ChipsProps extends Omit<ComponentPropsWithoutRef<'div'>, 'child
  * Belongs next to the trigger, never inside it: a chip carries its own button,
  * and nesting a button inside the trigger button is invalid HTML.
  */
-export function Chips({ removeLabel, ...props }: ChipsProps) {
+export function Chips({ removeLabel, reorderable = false, ...props }: ChipsProps) {
   const api = useApi()
   const selected = useSelectedValues(api)
+  const dragging = useRef<number | null>(null)
   const byValue = new Map(api.getAllOptions().map((option) => [option.value, option]))
   if (selected.length === 0) return null
 
-  return (
-    <div data-part="chips" {...props}>
-      {selected.map((value) => {
+  const move = (from: number, to: number) => api.dispatch({ type: 'reorder', from, to })
+
+  const chips = (
+    <>
+      {selected.map((value, index) => {
         const label = byValue.get(value)?.label ?? String(value)
 
         return (
-          <span key={String(value)} data-part="chip">
+          <span
+            key={String(value)}
+            data-part="chip"
+            // A reorderable chip is a list item the user can act on; without
+            // the role its handlers would sit on a bare span.
+            role={reorderable ? 'listitem' : undefined}
+            draggable={reorderable || undefined}
+            onDragStart={reorderable ? () => (dragging.current = index) : undefined}
+            onDragOver={reorderable ? (event) => event.preventDefault() : undefined}
+            onDrop={
+              reorderable
+                ? (event) => {
+                    event.preventDefault()
+                    if (dragging.current !== null) move(dragging.current, index)
+                    dragging.current = null
+                  }
+                : undefined
+            }
+            // Keyboard equivalent of the drag: reordering must not be
+            // pointer-only.
+            onKeyDown={
+              reorderable
+                ? (event) => {
+                    if (!event.altKey) return
+                    if (event.key === 'ArrowLeft') move(index, index - 1)
+                    else if (event.key === 'ArrowRight') move(index, index + 1)
+                    else return
+                    event.preventDefault()
+                  }
+                : undefined
+            }
+            tabIndex={reorderable ? 0 : undefined}
+          >
             {label}
             <button
               type="button"
@@ -171,6 +213,30 @@ export function Chips({ removeLabel, ...props }: ChipsProps) {
           </span>
         )
       })}
+    </>
+  )
+
+  if (!reorderable) {
+    return (
+      <div data-part="chips" {...props}>
+        {chips}
+      </div>
+    )
+  }
+
+  // Two branches rather than conditional attributes: a role computed at
+  // runtime is invisible to static analysis, which then reads this as a bare
+  // div carrying a label it cannot support.
+  return (
+    <div
+      data-part="chips"
+      role="list"
+      // Said once on the list: `listitem` takes no label, and repeating the
+      // hint on every chip would be noise in a screen reader.
+      aria-label="Выбранные значения, Alt со стрелками меняет порядок"
+      {...props}
+    >
+      {chips}
     </div>
   )
 }
@@ -233,6 +299,31 @@ export function Highlight({
         ),
       )}
     </span>
+  )
+}
+
+/**
+ * Takes back the last removal.
+ *
+ * Renders nothing when there is nothing to take back, and any other change to
+ * the selection clears the offer — an undo that resurrects something the user
+ * has forgotten about is worse than no undo at all.
+ */
+export function UndoRemove(props: ComponentPropsWithoutRef<'button'>) {
+  const api = useApi()
+  const undo = useStoreSlice(
+    api.store,
+    useCallback((state: SelectState<unknown, SelectOption<unknown>>) => state.undo, []),
+  )
+  if (!undo) return null
+
+  return (
+    <button
+      type="button"
+      data-part="undo"
+      onClick={() => api.dispatch({ type: 'undoRemove' })}
+      {...props}
+    />
   )
 }
 
@@ -498,6 +589,7 @@ const parts = {
   Footer,
   Highlight,
   SelectAllButton,
+  UndoRemove,
   Label,
   Trigger,
   Value,

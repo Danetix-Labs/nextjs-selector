@@ -63,6 +63,13 @@ export interface UseSelectConfig<
    */
   readonly pinned?: readonly TValue[]
   /**
+   * Remembers answers per query.
+   *
+   * Off by default: a cache that outlives the data it holds is worse than no
+   * cache, and only the consumer knows how long their results stay true.
+   */
+  readonly cache?: boolean
+  /**
    * Number of columns when the list is laid out as a grid.
    *
    * Only the keyboard needs to know: left and right step by one, up and down
@@ -181,6 +188,7 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
     columns = 1,
     max,
     pinned,
+    cache = false,
   } = config
 
   const flags = useMemo<SelectFlags>(
@@ -200,12 +208,23 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
   loadRef.current = loadOptions
 
   const cursorRef = useRef<unknown>(undefined)
+  const cacheRef = useRef(new Map<string, readonly TOption[]>())
 
   // Async source: debounce the query, drop results that arrive out of order.
   useEffect(() => {
     if (!loadRef.current) return
 
     let current = true
+
+    const cached = cache ? cacheRef.current.get(query) : undefined
+    if (cached) {
+      setLoadedOptions(cached)
+      store.dispatch((state) =>
+        reduce(state, { type: 'optionsLoaded', hasMore: false }, ctxRef.current),
+      )
+      return
+    }
+
     const timer = setTimeout(() => {
       store.dispatch((state) =>
         reduce(state, { type: 'setStatus', status: 'loading' }, ctxRef.current),
@@ -217,6 +236,7 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
 
           const page = toPage(result)
           cursorRef.current = page.nextCursor
+          if (cache) cacheRef.current.set(query, page.options)
           setLoadedOptions(page.options)
           store.dispatch((state) =>
             reduce(
@@ -239,7 +259,7 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
       current = false
       clearTimeout(timer)
     }
-  }, [query, debounceMs, store])
+  }, [query, debounceMs, store, cache])
 
   const isAsync = loadOptions !== undefined
   const sourceOptions = isAsync ? (loadedOptions ?? options) : options

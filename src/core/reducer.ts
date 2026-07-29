@@ -15,6 +15,7 @@ export function initialState<TValue, TOption extends SelectOption<TValue> = Sele
     query: '',
     activeIndex: NO_ACTIVE,
     selected,
+    undo: null,
   }
 }
 
@@ -129,14 +130,18 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
       }
 
       if (state.selected.includes(action.value)) {
-        return { ...state, selected: state.selected.filter((value) => value !== action.value) }
+        return {
+          ...state,
+          selected: state.selected.filter((value) => value !== action.value),
+          undo: { value: action.value, index: state.selected.indexOf(action.value) },
+        }
       }
 
       // At the limit, adding is a no-op — removing still works, so the user is
       // never stuck.
       if (max !== undefined && state.selected.length >= max) return state
 
-      return { ...state, selected: [...state.selected, action.value] }
+      return { ...state, selected: [...state.selected, action.value], undo: null }
     }
 
     case 'selectActive': {
@@ -147,13 +152,47 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
     }
 
     case 'remove': {
-      const selected = state.selected.filter((value) => value !== action.value)
-      return selected.length === state.selected.length ? state : { ...state, selected }
+      const index = state.selected.indexOf(action.value)
+      if (index === -1) return state
+
+      return {
+        ...state,
+        selected: state.selected.filter((value) => value !== action.value),
+        undo: { value: action.value, index },
+      }
     }
 
     case 'removeLast': {
-      if (state.selected.length === 0) return state
-      return { ...state, selected: state.selected.slice(0, -1) }
+      const last = state.selected[state.selected.length - 1]
+      if (last === undefined) return state
+
+      return {
+        ...state,
+        selected: state.selected.slice(0, -1),
+        undo: { value: last, index: state.selected.length - 1 },
+      }
+    }
+
+    case 'undoRemove': {
+      if (!state.undo) return state
+
+      const selected = [...state.selected]
+      selected.splice(Math.min(state.undo.index, selected.length), 0, state.undo.value)
+
+      return { ...state, selected, undo: null }
+    }
+
+    case 'reorder': {
+      const { from, to } = action
+      const { length } = state.selected
+      if (from === to || from < 0 || to < 0 || from >= length || to >= length) return state
+
+      const selected = [...state.selected]
+      const [moved] = selected.splice(from, 1)
+      if (moved === undefined) return state
+      selected.splice(to, 0, moved)
+
+      return { ...state, selected, undo: null }
     }
 
     case 'clear':
