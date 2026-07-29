@@ -220,12 +220,49 @@ const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
 В DOM попадает только видимое окно плюс overscan, подсветка удерживается
 в зоне видимости. Тест поднимает 10 000 опций и проверяет, что узлов меньше 25.
 
+Строки разной высоты — вместо `itemHeight` передайте оценку:
+
+```tsx
+<Select.Virtualized estimateHeight={44} />
+```
+
+Строки сообщают настоящую высоту после отрисовки; оценка только задаёт
+начальное положение полосы прокрутки.
+
 Контейнеру нужна заданная высота — окно вычисляется по измеренному вьюпорту,
 и мерить нечего, пока высота не задана:
 
 ```tsx
 <Select.Virtualized itemHeight={34} style={{ height: '15rem' }} />
 ```
+
+### Каскадный выбор
+
+Связанные списки — это композиция, а не отдельная возможность: значение
+верхнего задаёт опции нижнего.
+
+```tsx
+const [country, setCountry] = useState<string>()
+
+<Select
+  options={countries}
+  label="Страна"
+  onValueChange={([value]) => {
+    setCountry(value)
+    setCity(undefined)   // сбросить нижний уровень
+  }}
+/>
+<Select
+  options={country ? citiesOf(country) : []}
+  label="Город"
+  disabled={!country}
+  value={city ? [city] : []}
+  onValueChange={([value]) => setCity(value)}
+/>
+```
+
+Специального API для этого нет намеренно: сброс нижних уровней и правила
+зависимостей у всех разные, а `value` с `onValueChange` уже дают всё нужное.
 
 ### Слоты вокруг списка
 

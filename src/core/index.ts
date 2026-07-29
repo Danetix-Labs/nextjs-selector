@@ -22,8 +22,11 @@ export {
   type TypeaheadBuffer,
 } from './typeahead.js'
 export {
+  computeVariableWindow,
   computeWindow,
   scrollOffsetFor,
+  toOffsets,
+  type VariableWindowInput,
   type VirtualWindow,
   type VirtualWindowInput,
 } from './virtual.js'

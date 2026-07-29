@@ -343,8 +343,10 @@ export interface VirtualizedProps<
   TValue,
   TOption extends SelectOption<TValue> = SelectOption<TValue>,
 > extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
-  /** Fixed row height in pixels. */
-  readonly itemHeight: number
+  /** Fixed row height in pixels. Omit and pass `estimateHeight` for variable rows. */
+  readonly itemHeight?: number
+  /** Starting guess for rows of unknown height. */
+  readonly estimateHeight?: number
   readonly overscan?: number
   readonly children?: (option: TOption, index: number) => ReactNode
 }
@@ -358,22 +360,32 @@ export interface VirtualizedProps<
  */
 export function Virtualized<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
   itemHeight,
+  estimateHeight,
   overscan,
   children,
   ...props
 }: VirtualizedProps<TValue, TOption>) {
   const api = useApi<TValue, TOption>()
   const options = useVisibleOptions(api)
-  const virtual = useVirtual(api, { count: options.length, itemHeight, overscan })
+  const virtual = useVirtual(api, { count: options.length, itemHeight, estimateHeight, overscan })
   const render = (children ?? defaultRender) as RenderOption<TOption>
   const { window: bounds } = virtual
 
   return (
     <div {...useListboxProps(api)} {...virtual.scrollProps} {...props}>
       <div role="presentation" style={virtual.topSpacerStyle} />
-      {options
-        .slice(bounds.start, bounds.end)
-        .map((option, offset) => render(option, bounds.start + offset))}
+      {options.slice(bounds.start, bounds.end).map((option, offset) => {
+        const index = bounds.start + offset
+
+        // Variable rows report their height; fixed rows need no wrapper.
+        return itemHeight === undefined ? (
+          <div key={String(option.value)} ref={virtual.measureItem(index)}>
+            {render(option, index)}
+          </div>
+        ) : (
+          render(option, index)
+        )
+      })}
       <div role="presentation" style={virtual.bottomSpacerStyle} />
     </div>
   )

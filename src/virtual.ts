@@ -3,7 +3,13 @@
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import { computeWindow, scrollOffsetFor, type VirtualWindow } from './core/virtual.js'
+import {
+  computeVariableWindow,
+  computeWindow,
+  scrollOffsetFor,
+  toOffsets,
+  type VirtualWindow,
+} from './core/virtual.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
 import type { SelectOption, SelectState } from './types.js'
 import type { SelectApi } from './useSelect.js'
@@ -11,13 +17,22 @@ import type { SelectApi } from './useSelect.js'
 export interface UseVirtualConfig {
   /** Number of options currently rendered — after filtering. */
   readonly count: number
-  /** Fixed row height in pixels. */
-  readonly itemHeight: number
+  /** Fixed row height in pixels. Omit and pass `estimateHeight` for variable rows. */
+  readonly itemHeight?: number
+  /**
+   * Starting guess for rows whose height is not known yet.
+   *
+   * Rows report their real height once rendered; the guess only decides where
+   * the scrollbar starts out.
+   */
+  readonly estimateHeight?: number
   readonly overscan?: number
 }
 
 export interface VirtualList {
   readonly window: VirtualWindow
+  /** Ref callback that reports a row's real height. Only needed for variable rows. */
+  readonly measureItem: (index: number) => (element: HTMLElement | null) => void
   readonly scrollProps: {
     readonly ref: (element: HTMLElement | null) => void
     readonly onScroll: () => void
@@ -42,7 +57,11 @@ export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
   api: SelectApi<TValue, TOption>,
   config: UseVirtualConfig,
 ): VirtualList {
-  const { count, itemHeight, overscan = 4 } = config
+  const { count, itemHeight, estimateHeight, overscan = 4 } = config
+  const rowHeight = itemHeight ?? estimateHeight ?? 0
+  const variable = itemHeight === undefined
+
+  const [measured, setMeasured] = useState<ReadonlyMap<number, number>>(() => new Map())
 
   const elementRef = useRef<HTMLElement | null>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -92,13 +111,32 @@ export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
     const element = elementRef.current
     if (!element) return
 
-    const offset = scrollOffsetFor(activeIndex, itemHeight, viewportHeight, element.scrollTop)
+    const offset = scrollOffsetFor(activeIndex, rowHeight, viewportHeight, element.scrollTop)
     if (offset !== null) element.scrollTop = offset
-  }, [activeIndex, itemHeight, viewportHeight])
+  }, [activeIndex, rowHeight, viewportHeight])
 
-  const virtualWindow = useMemo(
-    () => computeWindow({ count, itemHeight, viewportHeight, scrollTop, overscan }),
-    [count, itemHeight, viewportHeight, scrollTop, overscan],
+  const virtualWindow = useMemo(() => {
+    if (!variable) {
+      return computeWindow({ count, itemHeight: rowHeight, viewportHeight, scrollTop, overscan })
+    }
+
+    const offsets = toOffsets(count, measured, rowHeight)
+
+    return computeVariableWindow({ offsets, viewportHeight, scrollTop, overscan })
+  }, [variable, count, rowHeight, viewportHeight, scrollTop, overscan, measured])
+
+  const measureItem = useCallback(
+    (index: number) => (element: HTMLElement | null) => {
+      if (!element) return
+
+      const height = element.offsetHeight || element.getBoundingClientRect().height
+      if (height <= 0) return
+
+      setMeasured((previous) =>
+        previous.get(index) === height ? previous : new Map(previous).set(index, height),
+      )
+    },
+    [],
   )
 
   const onScroll = useCallback(() => {
@@ -109,6 +147,7 @@ export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
   return useMemo(
     () => ({
       window: virtualWindow,
+      measureItem,
       scrollProps: {
         ref: setRef,
         onScroll,
@@ -117,6 +156,6 @@ export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
       topSpacerStyle: { height: virtualWindow.paddingTop, flexShrink: 0 },
       bottomSpacerStyle: { height: virtualWindow.paddingBottom, flexShrink: 0 },
     }),
-    [virtualWindow, setRef, onScroll],
+    [virtualWindow, measureItem, setRef, onScroll],
   )
 }
