@@ -14,7 +14,7 @@
   {
     "name": "полный вход",
     "path": "dist/index.js",
-    "limit": "8 kB",
+    "limit": "8.5 kB",
     "ignore": ["react"]
   }
 ]

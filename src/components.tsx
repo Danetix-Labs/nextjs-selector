@@ -3,6 +3,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef } from 'react'
 
+import { type AnnounceMessages, announce } from './announce.js'
 import { groupOptions, type OptionGroup } from './core/grouping.js'
 import { highlightMatches } from './core/highlight.js'
 import { useFormFields } from './form.js'
@@ -351,6 +352,69 @@ export function Header(props: ComponentPropsWithoutRef<'div'>) {
   return <div data-part="header" {...props} />
 }
 
+/**
+ * Says out loud what a sighted user can see: how many options matched, and
+ * what was just selected or removed.
+ *
+ * Visually hidden by design — this is the half of the widget that only a
+ * screen reader consumes, and without it filtering and selection happen in
+ * silence. Put it inside `Select.Root`, anywhere.
+ */
+export function Announcer({
+  messages,
+  ...props
+}: ComponentPropsWithoutRef<'div'> & { readonly messages?: AnnounceMessages }) {
+  const api = useApi()
+  const open = useIsOpen(api)
+  const query = useQuery(api)
+  const visible = useVisibleOptions(api)
+  const selected = useSelectedValues(api)
+  const previous = useRef<readonly unknown[]>(selected)
+
+  const message = announce(
+    {
+      open,
+      query,
+      visible,
+      selected,
+      previousSelected: previous.current,
+      labelOf: (value) =>
+        api.getAllOptions().find((option) => option.value === value)?.label ?? String(value),
+    },
+    messages,
+  )
+
+  useEffect(() => {
+    previous.current = selected
+  }, [selected])
+
+  return (
+    <div
+      data-part="announcer"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      style={VISUALLY_HIDDEN}
+      {...props}
+    >
+      {message}
+    </div>
+  )
+}
+
+/** Off-screen but still announced — `display: none` would silence it. */
+const VISUALLY_HIDDEN = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  margin: '-1px',
+  padding: 0,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+} as const
+
 /** Pinned area below the list — actions like «Create», «Manage», «Clear». */
 export function Footer(props: ComponentPropsWithoutRef<'div'>) {
   return <div data-part="footer" {...props} />
@@ -587,6 +651,7 @@ const parts = {
   LoadMore,
   Header,
   Footer,
+  Announcer,
   Highlight,
   SelectAllButton,
   UndoRemove,

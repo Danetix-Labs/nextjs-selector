@@ -4,7 +4,9 @@
 // Reach for `nextjs-selector/headless` when you want no markup at all, or
 // `nextjs-selector/core` for the framework-free state machine.
 
+export { type AnnounceInput, type AnnounceMessages, announce, defaultMessages } from './announce.js'
 export {
+  Announcer,
   Chips,
   type ChipsProps,
   ClearButton,

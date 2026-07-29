@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import {
+  Announcer,
   Chips,
   ClearButton,
   Content,
@@ -88,6 +89,7 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
 
   return (
     <Root<TValue, TOption> {...config}>
+      <Announcer />
       {label === undefined ? null : <Label>{label}</Label>}
       {withChips ? <Chips /> : null}
 
