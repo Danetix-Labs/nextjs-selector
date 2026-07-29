@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
+import { isCreateOption, withCreateOption } from './core/creatable.js'
 import { initialState, reduce } from './core/reducer.js'
 import { createStore, type Store } from './core/store.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
@@ -43,6 +44,12 @@ export interface UseSelectConfig<TValue> {
   readonly loadOptions?: (query: string) => Promise<readonly SelectOption<TValue>[]>
   /** Delay before an async load fires. Defaults to 300 ms. */
   readonly debounceMs?: number
+  /** Offers the current query as a new option when nothing matches exactly. */
+  readonly creatable?: boolean
+  /** Label of the create entry. Defaults to `Создать «query»`. */
+  readonly createLabel?: (query: string) => string
+  /** Called instead of selecting when the create entry is chosen. */
+  readonly onCreate?: (label: string) => void
 }
 
 export interface SelectFlags {
@@ -90,6 +97,10 @@ function defaultFilter<TValue>(option: SelectOption<TValue>, query: string): boo
   return normalize(option.label).includes(normalize(query))
 }
 
+function defaultCreateLabel(query: string): string {
+  return `Создать «${query}»`
+}
+
 export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TValue> {
   const {
     options,
@@ -104,6 +115,9 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
     invalid = false,
     loadOptions,
     debounceMs = 300,
+    creatable = false,
+    createLabel = defaultCreateLabel,
+    onCreate,
   } = config
 
   const flags = useMemo<SelectFlags>(
@@ -156,13 +170,14 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const isAsync = loadOptions !== undefined
   const sourceOptions = isAsync ? (loadedOptions ?? options) : options
 
-  const visibleOptions = useMemo(
-    () =>
+  const visibleOptions = useMemo(() => {
+    const matched =
       isAsync || query === ''
         ? sourceOptions
-        : sourceOptions.filter((option) => filter(option, query)),
-    [sourceOptions, query, filter, isAsync],
-  )
+        : sourceOptions.filter((option) => filter(option, query))
+
+    return creatable ? withCreateOption(matched, query, createLabel) : matched
+  }, [sourceOptions, query, filter, isAsync, creatable, createLabel])
 
   // Refs keep `dispatch` identity-stable while still reading fresh values.
   const ctxRef = useRef<SelectContext<TValue>>({ options: visibleOptions, multiple })
@@ -187,6 +202,9 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const flagsRef = useRef(flags)
   flagsRef.current = flags
 
+  const onCreateRef = useRef(onCreate)
+  onCreateRef.current = onCreate
+
   const dispatch = useCallback(
     (action: SelectAction<TValue>) => {
       const { disabled: isDisabled, readOnly: isReadOnly } = flagsRef.current
@@ -194,6 +212,22 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
       if (isReadOnly && MUTATING.has(action.type)) return
 
       const state = store.getState()
+
+      // The create entry is not a real value: it reports the typed text and
+      // leaves the selection alone.
+      const target =
+        action.type === 'select'
+          ? ctxRef.current.options.find((option) => option.value === action.value)
+          : action.type === 'selectActive'
+            ? ctxRef.current.options[state.activeIndex]
+            : undefined
+
+      if (target && isCreateOption(target)) {
+        onCreateRef.current?.(state.query.trim())
+        store.dispatch((current) => reduce(current, { type: 'close' }, ctxRef.current))
+        return
+      }
+
       const next = reduce(state, action, ctxRef.current)
       const changed = next.selected !== state.selected
 

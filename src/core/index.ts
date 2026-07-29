@@ -9,6 +9,7 @@ export type {
   SelectState,
   SelectStatus,
 } from '../types.js'
+export { CREATE_VALUE, canCreate, isCreateOption, withCreateOption } from './creatable.js'
 export { type GroupedOption, groupOptions, type OptionGroup } from './grouping.js'
 export { initialState, NO_ACTIVE, reduce } from './reducer.js'
 export { createStore, type Listener, type Store } from './store.js'

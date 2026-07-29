@@ -20,6 +20,7 @@ import {
 import { Slot } from './slot.js'
 import type { SelectOption } from './types.js'
 import { type SelectApi, type UseSelectConfig, useSelect } from './useSelect.js'
+import { useVirtual } from './virtual.js'
 
 const SelectContext = createContext<SelectApi<unknown> | null>(null)
 
@@ -250,6 +251,44 @@ function Group<TValue>({
   )
 }
 
+export interface VirtualizedProps<TValue>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** Fixed row height in pixels. */
+  readonly itemHeight: number
+  readonly overscan?: number
+  readonly children?: (option: SelectOption<TValue>, index: number) => ReactNode
+}
+
+/**
+ * Listbox that renders only the rows in view.
+ *
+ * Swap it in for `List` when the option count runs into the thousands; the
+ * spacers reserve the height of everything outside the window and are marked
+ * presentational so they stay out of the accessibility tree.
+ */
+export function Virtualized<TValue>({
+  itemHeight,
+  overscan,
+  children,
+  ...props
+}: VirtualizedProps<TValue>) {
+  const api = useApi<TValue>()
+  const options = useVisibleOptions(api)
+  const virtual = useVirtual(api, { count: options.length, itemHeight, overscan })
+  const render = (children ?? defaultRender) as RenderOption<TValue>
+  const { window: bounds } = virtual
+
+  return (
+    <div {...useListboxProps(api)} {...virtual.scrollProps} {...props}>
+      <div role="presentation" style={virtual.topSpacerStyle} />
+      {options
+        .slice(bounds.start, bounds.end)
+        .map((option, offset) => render(option, bounds.start + offset))}
+      <div role="presentation" style={virtual.bottomSpacerStyle} />
+    </div>
+  )
+}
+
 export interface ItemProps<TValue> extends Omit<ComponentPropsWithoutRef<'div'>, 'value'> {
   readonly option: SelectOption<TValue>
   readonly index: number
@@ -318,6 +357,7 @@ export const Select = {
   Content,
   Search,
   List,
+  Virtualized,
   Item,
   ItemIndicator,
   Empty,

@@ -27,6 +27,8 @@ export {
   type TriggerProps,
   Value,
   type ValueProps,
+  Virtualized,
+  type VirtualizedProps,
 } from './components.js'
 export * from './headless.js'
 export { mergeProps, Slot, type SlotProps } from './slot.js'
