@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/headless.ts', 'src/core/index.ts'],
   format: ['esm', 'cjs'],
   target: 'es2020',
   platform: 'neutral',

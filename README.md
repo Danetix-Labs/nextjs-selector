@@ -22,6 +22,18 @@ CI проверяет на каждом push и PR:
 | Сборка Next.js | 14 (webpack, React 18), 15 (webpack, React 19), 16 (Turbopack и `--webpack`, React 19.2) |
 | Роутеры Next.js | App Router (Server + Client Components) и Pages Router |
 
+## Точки входа
+
+| Импорт | Что внутри | Где работает |
+| --- | --- | --- |
+| `nextjs-selector` | компоненты + весь headless-слой | Client Components |
+| `nextjs-selector/headless` | хуки без разметки | Client Components |
+| `nextjs-selector/core` | чистый автомат состояния, без React | где угодно, включая RSC |
+
+`core` не содержит ни `'use client'`, ни импортов React, поэтому фильтрацию,
+переходы состояния и расчёт окна можно выполнять на сервере. CI проверяет это
+запуском под `--conditions=react-server`.
+
 ## Использование
 
 ### Составные компоненты
