@@ -127,13 +127,22 @@ export interface SelectApi<TValue, TOption extends SelectOption<TValue> = Select
   readonly loadMore: () => void
 }
 
-/** Actions that change the selection — blocked while read-only. */
+/**
+ * Actions that change the selection — blocked while read-only.
+ *
+ * Must list every case in the reducer that touches `selected`. Adding one
+ * there and forgetting it here is exactly how read-only quietly stops being
+ * read-only.
+ */
 const MUTATING: ReadonlySet<SelectAction<unknown>['type']> = new Set([
   'select',
   'selectActive',
   'remove',
   'removeLast',
   'clear',
+  'selectAll',
+  'reorder',
+  'undoRemove',
 ])
 
 const selectQuery = <TValue, TOption extends SelectOption<TValue>>(
@@ -208,7 +217,7 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
   loadRef.current = loadOptions
 
   const cursorRef = useRef<unknown>(undefined)
-  const cacheRef = useRef(new Map<string, readonly TOption[]>())
+  const cacheRef = useRef(new Map<string, { options: readonly TOption[]; nextCursor: unknown }>())
 
   // Async source: debounce the query, drop results that arrive out of order.
   useEffect(() => {
@@ -218,9 +227,16 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
 
     const cached = cache ? cacheRef.current.get(query) : undefined
     if (cached) {
-      setLoadedOptions(cached)
+      // The cursor is restored along with the options: without it a cached
+      // answer would look like the last page and pagination would stop.
+      cursorRef.current = cached.nextCursor
+      setLoadedOptions(cached.options)
       store.dispatch((state) =>
-        reduce(state, { type: 'optionsLoaded', hasMore: false }, ctxRef.current),
+        reduce(
+          state,
+          { type: 'optionsLoaded', hasMore: cached.nextCursor !== undefined },
+          ctxRef.current,
+        ),
       )
       return
     }
@@ -236,7 +252,8 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
 
           const page = toPage(result)
           cursorRef.current = page.nextCursor
-          if (cache) cacheRef.current.set(query, page.options)
+          if (cache)
+            cacheRef.current.set(query, { options: page.options, nextCursor: page.nextCursor })
           setLoadedOptions(page.options)
           store.dispatch((state) =>
             reduce(

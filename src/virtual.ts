@@ -9,6 +9,7 @@ import {
   scrollOffsetFor,
   toOffsets,
   type VirtualWindow,
+  variableScrollOffsetFor,
 } from './core/virtual.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
 import type { SelectOption, SelectState } from './types.js'
@@ -111,9 +112,17 @@ export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
     const element = elementRef.current
     if (!element) return
 
-    const offset = scrollOffsetFor(activeIndex, rowHeight, viewportHeight, element.scrollTop)
+    const offset = variable
+      ? variableScrollOffsetFor(
+          toOffsets(count, measured, rowHeight),
+          activeIndex,
+          viewportHeight,
+          element.scrollTop,
+        )
+      : scrollOffsetFor(activeIndex, rowHeight, viewportHeight, element.scrollTop)
+
     if (offset !== null) element.scrollTop = offset
-  }, [activeIndex, rowHeight, viewportHeight])
+  }, [activeIndex, rowHeight, viewportHeight, variable, count, measured])
 
   const virtualWindow = useMemo(() => {
     if (!variable) {

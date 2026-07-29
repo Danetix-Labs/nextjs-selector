@@ -132,3 +132,26 @@ export function toOffsets(
 
   return offsets
 }
+
+/**
+ * Scroll offset bringing `index` into view when rows differ in height.
+ *
+ * The fixed-height version multiplies by a single row height, which is simply
+ * wrong here: with one tall row early in the list every offset after it is off
+ * by the difference.
+ */
+export function variableScrollOffsetFor(
+  offsets: readonly number[],
+  index: number,
+  viewportHeight: number,
+  scrollTop: number,
+): number | null {
+  const top = offsets[index]
+  const bottom = offsets[index + 1]
+  if (top === undefined || bottom === undefined || viewportHeight <= 0) return null
+
+  if (top < scrollTop) return top
+  if (bottom > scrollTop + viewportHeight) return bottom - viewportHeight
+
+  return null
+}
