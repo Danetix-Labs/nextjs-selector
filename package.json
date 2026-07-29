@@ -1,6 +1,6 @@
 {
   "name": "nextjs-selector",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Accessible select and multi-select components for React and Next.js",
   "license": "MIT",
   "author": "Danetix-Labs",
