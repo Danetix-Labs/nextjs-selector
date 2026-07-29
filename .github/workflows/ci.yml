@@ -198,3 +198,26 @@ jobs:
         if: matrix.next == '16'
         working-directory: probe
         run: rm -rf .next && npx next build --webpack
+
+  demo:
+    name: Build the demo app
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # The demo consumes the library through file:../.., so it needs a build.
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install and build the demo
+        working-directory: examples/demo
+        run: |
+          npm install
+          npx next build

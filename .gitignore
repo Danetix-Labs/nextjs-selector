@@ -15,3 +15,6 @@ yarn-error.log*
 .vscode/*
 .idea/
 .DS_Store
+examples/demo/.next
+examples/demo/node_modules
+examples/demo/next-env.d.ts

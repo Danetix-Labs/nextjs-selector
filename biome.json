@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**", "test/**", "*.ts", "*.json"]
+    "includes": ["src/**", "test/**", "examples/**", "*.ts", "*.json"]
   },
   "formatter": {
     "enabled": true,
@@ -45,6 +45,18 @@
       "linter": {
         "rules": {
           "a11y": {
+            "useSemanticElements": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["examples/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noNoninteractiveTabindex": "off",
+            "useAriaPropsForRole": "off",
             "useSemanticElements": "off"
           }
         }
