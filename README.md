@@ -148,6 +148,22 @@ Tailwind не обязателен.
 Состояния: `data-state="open|closed"`, `data-highlighted`, `data-selected`,
 `data-disabled`, `data-multiple`.
 
+### Возможности
+
+| Что | Как |
+| --- | --- |
+| Одиночный и множественный выбор | `multiple` |
+| Поиск | `Select.Search`, свой `filter` |
+| Группы | поле `group` в опции |
+| Чипы с удалением | `Select.Chips` |
+| Создание на лету | `creatable`, `onCreate` |
+| Асинхронная загрузка | `loadOptions`, `debounceMs`, `Select.Loading`, `Select.LoadError` |
+| Большие списки | `Select.Virtualized` или хук `useVirtual` |
+| Состояния | `disabled`, `readOnly`, `required`, `invalid` |
+| Формы и Server Actions | `name` на `Select.Root` |
+| Подмена элемента | `asChild` на `Trigger`, `Item`, `Content` |
+| Контролируемый режим | `value` + `onValueChange` |
+
 ### Позиционирование
 
 `usePopoverProps` использует нативный Popover API и CSS anchor positioning —
@@ -191,7 +207,8 @@ const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
 
 ### Доступность
 
-Тесты прогоняют axe в закрытом и открытом состоянии. Автоматический аудит
+Тесты прогоняют axe в закрытом и открытом состоянии, с группами, чипами,
+виртуализацией, состояниями и при `dir="rtl"`. Автоматический аудит
 ловит структурные ошибки ARIA, но не заменяет проверку живым скринридером:
 прогонов в NVDA, JAWS и VoiceOver ещё не было, поэтому соответствие WCAG 2.2 AA
 пока не заявляется.
