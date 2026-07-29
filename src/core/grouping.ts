@@ -1,15 +1,15 @@
 import type { SelectOption } from '../types.js'
 
-export interface GroupedOption<TValue> {
-  readonly option: SelectOption<TValue>
+export interface GroupedOption<TOption> {
+  readonly option: TOption
   /** Position in the flat list — what keyboard navigation indexes. */
   readonly index: number
 }
 
-export interface OptionGroup<TValue> {
+export interface OptionGroup<TOption> {
   /** Undefined for options that declare no group. */
   readonly label: string | undefined
-  readonly options: readonly GroupedOption<TValue>[]
+  readonly options: readonly GroupedOption<TOption>[]
 }
 
 /**
@@ -19,11 +19,11 @@ export interface OptionGroup<TValue> {
  * keep working against the flat list, so the indices must survive.
  * Groups appear in first-seen order, and options keep their relative order.
  */
-export function groupOptions<TValue>(
-  options: readonly SelectOption<TValue>[],
-): readonly OptionGroup<TValue>[] {
-  const groups: OptionGroup<TValue>[] = []
-  const byLabel = new Map<string | undefined, GroupedOption<TValue>[]>()
+export function groupOptions<TOption extends SelectOption<unknown>>(
+  options: readonly TOption[],
+): readonly OptionGroup<TOption>[] {
+  const groups: OptionGroup<TOption>[] = []
+  const byLabel = new Map<string | undefined, GroupedOption<TOption>[]>()
 
   options.forEach((option, index) => {
     let bucket = byLabel.get(option.group)

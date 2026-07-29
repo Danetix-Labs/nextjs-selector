@@ -2,10 +2,10 @@ import type { SelectAction, SelectContext, SelectOption, SelectState } from '../
 
 export const NO_ACTIVE = -1
 
-export function initialState<TValue>(
+export function initialState<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>(
   selected: readonly TValue[] = [],
-  visible: readonly SelectOption<TValue>[] = [],
-): SelectState<TValue> {
+  visible: readonly TOption[] = [],
+): SelectState<TValue, TOption> {
   return {
     open: false,
     status: 'idle',
@@ -66,11 +66,11 @@ function clamp(value: number, max: number): number {
  * Pure transition. Returns the *same* state reference on no-ops so the store
  * can skip notifying subscribers — this is what keeps renders off the table.
  */
-export function reduce<TValue>(
-  state: SelectState<TValue>,
-  action: SelectAction<TValue>,
-  ctx: SelectContext<TValue>,
-): SelectState<TValue> {
+export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>(
+  state: SelectState<TValue, TOption>,
+  action: SelectAction<TValue, TOption>,
+  ctx: SelectContext<TValue, TOption>,
+): SelectState<TValue, TOption> {
   const { options, multiple } = ctx
 
   switch (action.type) {

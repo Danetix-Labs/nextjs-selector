@@ -31,17 +31,19 @@ export function canCreate<TValue>(
  * It goes last and participates in navigation like any other option, so
  * Enter reaches it without a special case in the keyboard model.
  */
-export function withCreateOption<TValue>(
-  options: readonly SelectOption<TValue>[],
+export function withCreateOption<TValue, TOption extends SelectOption<TValue>>(
+  options: readonly TOption[],
   query: string,
   label: (query: string) => string,
-): readonly SelectOption<TValue>[] {
+): readonly TOption[] {
   if (!canCreate(options, query)) return options
 
-  const entry: SelectOption<TValue> = {
+  // The create entry is synthetic: it carries only value and label, never the
+  // consumer's own fields. Check `isCreateOption` before reading them.
+  const entry = {
     value: CREATE_VALUE as unknown as TValue,
     label: label(query.trim()),
-  }
+  } as TOption
 
   return [...options, entry]
 }

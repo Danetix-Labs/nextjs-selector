@@ -35,7 +35,7 @@ function Form({
   multiple?: boolean
   onSubmit: (data: FormData) => void
 }) {
-  const api = useSelect({ options, multiple })
+  const api = useSelect<string>({ options, multiple })
   const fields = useFormFields(api, { name: 'letters' })
 
   return (

@@ -18,8 +18,11 @@ export interface SelectIds {
   readonly anchor: string
 }
 
-export interface UseSelectConfig<TValue> {
-  readonly options: readonly SelectOption<TValue>[]
+export interface UseSelectConfig<
+  TValue,
+  TOption extends SelectOption<TValue> = SelectOption<TValue>,
+> {
+  readonly options: readonly TOption[]
   readonly multiple?: boolean
   /** Controlled value. Omit to let the hook own the selection. */
   readonly value?: readonly TValue[]
@@ -29,7 +32,7 @@ export interface UseSelectConfig<TValue> {
    * Defaults to a case- and diacritic-insensitive substring match.
    * Memoize it, or filtering re-runs on every render.
    */
-  readonly filter?: (option: SelectOption<TValue>, query: string) => boolean
+  readonly filter?: (option: TOption, query: string) => boolean
   /** Inert: neither opens nor changes. */
   readonly disabled?: boolean
   /** Opens and navigates, but the selection cannot change. */
@@ -41,7 +44,7 @@ export interface UseSelectConfig<TValue> {
    * list and local filtering is skipped — the source is expected to have
    * filtered already.
    */
-  readonly loadOptions?: (query: string) => Promise<readonly SelectOption<TValue>[]>
+  readonly loadOptions?: (query: string) => Promise<readonly TOption[]>
   /** Delay before an async load fires. Defaults to 300 ms. */
   readonly debounceMs?: number
   /** Offers the current query as a new option when nothing matches exactly. */
@@ -67,18 +70,18 @@ export interface SelectFlags {
 }
 
 /** Stable handle — no member changes identity across renders. */
-export interface SelectApi<TValue> {
-  readonly store: Store<SelectState<TValue>>
+export interface SelectApi<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>> {
+  readonly store: Store<SelectState<TValue, TOption>>
   readonly ids: SelectIds
   readonly multiple: boolean
-  readonly dispatch: (action: SelectAction<TValue>) => void
+  readonly dispatch: (action: SelectAction<TValue, TOption>) => void
   /** Options after filtering, exactly as keyboard navigation indexes them. */
-  readonly getVisibleOptions: () => readonly SelectOption<TValue>[]
+  readonly getVisibleOptions: () => readonly TOption[]
   /**
    * Every option, filtering ignored. Selected values must keep their labels
    * while a search narrows the list.
    */
-  readonly getAllOptions: () => readonly SelectOption<TValue>[]
+  readonly getAllOptions: () => readonly TOption[]
   readonly flags: SelectFlags
   /** Columns in the visual layout; 1 means a plain vertical list. */
   readonly columns: number
@@ -93,7 +96,9 @@ const MUTATING: ReadonlySet<SelectAction<unknown>['type']> = new Set([
   'clear',
 ])
 
-const selectQuery = <TValue>(state: SelectState<TValue>): string => state.query
+const selectQuery = <TValue, TOption extends SelectOption<TValue>>(
+  state: SelectState<TValue, TOption>,
+): string => state.query
 
 function normalize(value: string): string {
   return value
@@ -110,7 +115,9 @@ function defaultCreateLabel(query: string): string {
   return `Создать «${query}»`
 }
 
-export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TValue> {
+export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>(
+  config: UseSelectConfig<TValue, TOption>,
+): SelectApi<TValue, TOption> {
   const {
     options,
     multiple = false,
@@ -137,11 +144,11 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
 
   const id = useId()
   const [store] = useState(() =>
-    createStore(initialState<TValue>(value ?? defaultValue ?? [], options)),
+    createStore(initialState<TValue, TOption>(value ?? defaultValue ?? [], options)),
   )
 
   const query = useStoreSlice(store, selectQuery)
-  const [loadedOptions, setLoadedOptions] = useState<readonly SelectOption<TValue>[] | null>(null)
+  const [loadedOptions, setLoadedOptions] = useState<readonly TOption[] | null>(null)
 
   const loadRef = useRef(loadOptions)
   loadRef.current = loadOptions
@@ -190,7 +197,7 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   }, [sourceOptions, query, filter, isAsync, creatable, createLabel])
 
   // Refs keep `dispatch` identity-stable while still reading fresh values.
-  const ctxRef = useRef<SelectContext<TValue>>({ options: visibleOptions, multiple })
+  const ctxRef = useRef<SelectContext<TValue, TOption>>({ options: visibleOptions, multiple })
   ctxRef.current = { options: visibleOptions, multiple }
 
   const allOptionsRef = useRef(sourceOptions)
@@ -216,7 +223,7 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   onCreateRef.current = onCreate
 
   const dispatch = useCallback(
-    (action: SelectAction<TValue>) => {
+    (action: SelectAction<TValue, TOption>) => {
       const { disabled: isDisabled, readOnly: isReadOnly } = flagsRef.current
       if (isDisabled) return
       if (isReadOnly && MUTATING.has(action.type)) return

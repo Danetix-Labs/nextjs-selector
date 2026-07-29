@@ -44,7 +44,7 @@ function Row({
 }
 
 function Harness() {
-  const api = useSelect({ options })
+  const api = useSelect<string>({ options })
   const visible = api.getVisibleOptions()
   const virtual = useVirtual(api, { count: visible.length, itemHeight: ITEM })
 

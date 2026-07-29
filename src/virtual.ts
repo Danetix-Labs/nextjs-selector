@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { computeWindow, scrollOffsetFor, type VirtualWindow } from './core/virtual.js'
 import { useStoreSlice } from './react/useStoreSlice.js'
-import type { SelectState } from './types.js'
+import type { SelectOption, SelectState } from './types.js'
 import type { SelectApi } from './useSelect.js'
 
 export interface UseVirtualConfig {
@@ -38,7 +38,10 @@ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : us
  * re-rendering the list: the scroll write happens in an effect driven by a
  * primitive subscription.
  */
-export function useVirtual<TValue>(api: SelectApi<TValue>, config: UseVirtualConfig): VirtualList {
+export function useVirtual<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+  config: UseVirtualConfig,
+): VirtualList {
   const { count, itemHeight, overscan = 4 } = config
 
   const elementRef = useRef<HTMLElement | null>(null)
@@ -47,11 +50,11 @@ export function useVirtual<TValue>(api: SelectApi<TValue>, config: UseVirtualCon
 
   const activeIndex = useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.activeIndex, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.activeIndex, []),
   )
   const open = useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.open, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.open, []),
   )
 
   const measure = useCallback(() => {

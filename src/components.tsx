@@ -22,16 +22,20 @@ import type { SelectOption } from './types.js'
 import { type SelectApi, type UseSelectConfig, useSelect } from './useSelect.js'
 import { useVirtual } from './virtual.js'
 
-const SelectContext = createContext<SelectApi<unknown> | null>(null)
+const SelectContext = createContext<SelectApi<unknown, SelectOption<unknown>> | null>(null)
 
-function useApi<TValue>(): SelectApi<TValue> {
+function useApi<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>(): SelectApi<
+  TValue,
+  TOption
+> {
   const api = useContext(SelectContext)
   if (!api) throw new Error('Компоненты Select должны быть внутри <Select.Root>')
 
-  return api as SelectApi<TValue>
+  return api as unknown as SelectApi<TValue, TOption>
 }
 
-export interface RootProps<TValue> extends UseSelectConfig<TValue> {
+export interface RootProps<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>
+  extends UseSelectConfig<TValue, TOption> {
   readonly children: ReactNode
   /** Enables hidden form fields under this name. */
   readonly name?: string
@@ -44,13 +48,18 @@ export interface RootProps<TValue> extends UseSelectConfig<TValue> {
  * The context value is the stable api handle, so nothing re-renders merely
  * because it is provided. Pieces that depend on state subscribe themselves.
  */
-export function Root<TValue>({ children, name, className, ...config }: RootProps<TValue>) {
-  const api = useSelect(config)
+export function Root<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
+  children,
+  name,
+  className,
+  ...config
+}: RootProps<TValue, TOption>) {
+  const api = useSelect<TValue, TOption>(config)
 
   // A real element, not just a provider: browsers without anchor positioning
   // need a positioned ancestor for the listbox to fall back to.
   return (
-    <SelectContext.Provider value={api as SelectApi<unknown>}>
+    <SelectContext.Provider value={api as unknown as SelectApi<unknown, SelectOption<unknown>>}>
       <div data-part="root" className={className}>
         {children}
         {name ? <HiddenFields name={name} /> : null}
@@ -194,11 +203,12 @@ export function Search(props: ComponentPropsWithoutRef<'input'>) {
   return <input {...useSearchProps(useApi())} {...props} />
 }
 
-export interface ListProps<TValue> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
-  readonly children?: (option: SelectOption<TValue>, index: number) => ReactNode
+export interface ListProps<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  readonly children?: (option: TOption, index: number) => ReactNode
 }
 
-type RenderOption<TValue> = (option: SelectOption<TValue>, index: number) => ReactNode
+type RenderOption<TOption> = (option: TOption, index: number) => ReactNode
 
 function defaultRender<TValue>(option: SelectOption<TValue>, index: number) {
   return (
@@ -218,11 +228,14 @@ function defaultRender<TValue>(option: SelectOption<TValue>, index: number) {
  * and nested ul/li cannot express that without extra wrappers that break
  * aria-required-parent.
  */
-export function List<TValue>({ children, ...props }: ListProps<TValue>) {
-  const api = useApi<TValue>()
+export function List<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
+  children,
+  ...props
+}: ListProps<TValue, TOption>) {
+  const api = useApi<TValue, TOption>()
   const options = useVisibleOptions(api)
   const groups = useMemo(() => groupOptions(options), [options])
-  const render = (children ?? defaultRender) as RenderOption<TValue>
+  const render = (children ?? defaultRender) as RenderOption<TOption>
   const isGrouped = groups.some((group) => group.label !== undefined)
 
   return (
@@ -236,12 +249,12 @@ export function List<TValue>({ children, ...props }: ListProps<TValue>) {
   )
 }
 
-function Group<TValue>({
+function Group<TOption>({
   group,
   render,
 }: {
-  readonly group: OptionGroup<TValue>
-  readonly render: RenderOption<TValue>
+  readonly group: OptionGroup<TOption>
+  readonly render: RenderOption<TOption>
 }) {
   const labelId = useId()
 
@@ -259,12 +272,14 @@ function Group<TValue>({
   )
 }
 
-export interface VirtualizedProps<TValue>
-  extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+export interface VirtualizedProps<
+  TValue,
+  TOption extends SelectOption<TValue> = SelectOption<TValue>,
+> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** Fixed row height in pixels. */
   readonly itemHeight: number
   readonly overscan?: number
-  readonly children?: (option: SelectOption<TValue>, index: number) => ReactNode
+  readonly children?: (option: TOption, index: number) => ReactNode
 }
 
 /**
@@ -274,16 +289,16 @@ export interface VirtualizedProps<TValue>
  * spacers reserve the height of everything outside the window and are marked
  * presentational so they stay out of the accessibility tree.
  */
-export function Virtualized<TValue>({
+export function Virtualized<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
   itemHeight,
   overscan,
   children,
   ...props
-}: VirtualizedProps<TValue>) {
-  const api = useApi<TValue>()
+}: VirtualizedProps<TValue, TOption>) {
+  const api = useApi<TValue, TOption>()
   const options = useVisibleOptions(api)
   const virtual = useVirtual(api, { count: options.length, itemHeight, overscan })
-  const render = (children ?? defaultRender) as RenderOption<TValue>
+  const render = (children ?? defaultRender) as RenderOption<TOption>
   const { window: bounds } = virtual
 
   return (
@@ -297,14 +312,20 @@ export function Virtualized<TValue>({
   )
 }
 
-export interface ItemProps<TValue> extends Omit<ComponentPropsWithoutRef<'div'>, 'value'> {
-  readonly option: SelectOption<TValue>
+export interface ItemProps<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>
+  extends Omit<ComponentPropsWithoutRef<'div'>, 'value'> {
+  readonly option: TOption
   readonly index: number
   /** Render the consumer's own element instead of a div. */
   readonly asChild?: boolean
 }
 
-export function Item<TValue>({ option, index, asChild, ...props }: ItemProps<TValue>) {
+export function Item<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
+  option,
+  index,
+  asChild,
+  ...props
+}: ItemProps<TValue, TOption>) {
   const optionProps = useOptionProps(useApi<TValue>(), {
     index,
     value: option.value,

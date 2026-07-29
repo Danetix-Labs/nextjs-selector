@@ -1,7 +1,6 @@
 'use client'
 
 import type { ReactNode } from 'react'
-
 import {
   Chips,
   ClearButton,
@@ -18,8 +17,12 @@ import {
   Value,
   Virtualized,
 } from './components.js'
+import type { SelectOption } from './types.js'
 
-export interface SelectFieldProps<TValue> extends Omit<RootProps<TValue>, 'children'> {
+export interface SelectFieldProps<
+  TValue,
+  TOption extends SelectOption<TValue> = SelectOption<TValue>,
+> extends Omit<RootProps<TValue, TOption>, 'children'> {
   readonly label?: ReactNode
   readonly placeholder?: string
   /** Adds the search box. Implied when `loadOptions` is present. */
@@ -48,7 +51,7 @@ export interface SelectFieldProps<TValue> extends Omit<RootProps<TValue>, 'child
  * the same parts in the arrangement most applications want, so the usual
  * usage is one element rather than a dozen.
  */
-export function SelectField<TValue>({
+export function SelectField<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>({
   label,
   placeholder,
   searchable,
@@ -61,13 +64,13 @@ export function SelectField<TValue>({
   itemHeight,
   chips,
   ...config
-}: SelectFieldProps<TValue>) {
+}: SelectFieldProps<TValue, TOption>) {
   const withSearch = searchable ?? config.loadOptions !== undefined
   const withChips = chips ?? config.multiple === true
   const accessibleName = searchLabel ?? 'Поиск'
 
   return (
-    <Root<TValue> {...config}>
+    <Root<TValue, TOption> {...config}>
       {label === undefined ? null : <Label>{label}</Label>}
       {withChips ? <Chips /> : null}
 
@@ -95,6 +98,8 @@ export function SelectField<TValue>({
 }
 
 /** `SelectField` with `multiple` already on. */
-export function MultiSelect<TValue>(props: Omit<SelectFieldProps<TValue>, 'multiple'>) {
-  return <SelectField<TValue> {...props} multiple />
+export function MultiSelect<TValue, TOption extends SelectOption<TValue> = SelectOption<TValue>>(
+  props: Omit<SelectFieldProps<TValue, TOption>, 'multiple'>,
+) {
+  return <SelectField<TValue, TOption> {...props} multiple />
 }

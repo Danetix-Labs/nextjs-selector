@@ -16,24 +16,30 @@ const flag = (on: boolean): DataFlag => (on ? '' : undefined)
 /** Options traversed by PageUp/PageDown. */
 const PAGE_SIZE = 10
 
-export function useIsOpen<TValue>(api: SelectApi<TValue>): boolean {
+export function useIsOpen<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): boolean {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.open, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.open, []),
   )
 }
 
-export function useSelectedValues<TValue>(api: SelectApi<TValue>): readonly TValue[] {
+export function useSelectedValues<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): readonly TValue[] {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.selected, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.selected, []),
   )
 }
 
-export function useQuery<TValue>(api: SelectApi<TValue>): string {
+export function useQuery<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): string {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.query, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.query, []),
   )
 }
 
@@ -44,24 +50,30 @@ export function useQuery<TValue>(api: SelectApi<TValue>): string {
  * re-render does not reach children whose element identity is unchanged.
  * Subscribing to the query here is what makes filtering reactive.
  */
-export function useVisibleOptions<TValue>(api: SelectApi<TValue>): readonly SelectOption<TValue>[] {
+export function useVisibleOptions<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): readonly TOption[] {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.visible, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.visible, []),
   )
 }
 
-export function useStatus<TValue>(api: SelectApi<TValue>): SelectStatus {
+export function useStatus<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): SelectStatus {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.status, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.status, []),
   )
 }
 
-function useActiveIndex<TValue>(api: SelectApi<TValue>): number {
+function useActiveIndex<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): number {
   return useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.activeIndex, []),
+    useCallback((state: SelectState<TValue, TOption>) => state.activeIndex, []),
   )
 }
 
@@ -70,7 +82,10 @@ function useActiveIndex<TValue>(api: SelectApi<TValue>): number {
  * combobox pattern. `textEntry` tells us whether printable keys belong to the
  * user's query rather than to us.
  */
-function useKeyDown<TValue>(api: SelectApi<TValue>, textEntry: boolean) {
+function useKeyDown<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+  textEntry: boolean,
+) {
   const buffer = useRef(emptyBuffer)
 
   return useCallback(
@@ -180,7 +195,9 @@ function useKeyDown<TValue>(api: SelectApi<TValue>, textEntry: boolean) {
   )
 }
 
-export function useLabelProps<TValue>(api: SelectApi<TValue>) {
+export function useLabelProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+) {
   const { ids } = api
 
   return useMemo(
@@ -189,7 +206,9 @@ export function useLabelProps<TValue>(api: SelectApi<TValue>) {
   )
 }
 
-export function useTriggerProps<TValue>(api: SelectApi<TValue>) {
+export function useTriggerProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+) {
   const open = useIsOpen(api)
   const activeIndex = useActiveIndex(api)
   const onKeyDown = useKeyDown(api, false)
@@ -228,7 +247,9 @@ export function useTriggerProps<TValue>(api: SelectApi<TValue>) {
   )
 }
 
-export function useSearchProps<TValue>(api: SelectApi<TValue>) {
+export function useSearchProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+) {
   const query = useQuery(api)
   const onKeyDown = useKeyDown(api, true)
 
@@ -254,7 +275,9 @@ export function useSearchProps<TValue>(api: SelectApi<TValue>) {
   )
 }
 
-export function useListboxProps<TValue>(api: SelectApi<TValue>) {
+export function useListboxProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+) {
   const open = useIsOpen(api)
 
   return useMemo(
@@ -281,17 +304,20 @@ export interface OptionPropsConfig<TValue> {
  * Subscribes to two booleans only, so moving the highlight re-renders the
  * option leaving and the one arriving — never the whole list.
  */
-export function useOptionProps<TValue>(api: SelectApi<TValue>, config: OptionPropsConfig<TValue>) {
+export function useOptionProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+  config: OptionPropsConfig<TValue>,
+) {
   const { index, value, disabled = false } = config
 
   const active = useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.activeIndex === index, [index]),
+    useCallback((state: SelectState<TValue, TOption>) => state.activeIndex === index, [index]),
   )
 
   const selected = useStoreSlice(
     api.store,
-    useCallback((state: SelectState<TValue>) => state.selected.includes(value), [value]),
+    useCallback((state: SelectState<TValue, TOption>) => state.selected.includes(value), [value]),
   )
 
   const onClick = useCallback(() => {

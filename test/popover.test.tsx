@@ -18,7 +18,7 @@ const options: readonly SelectOption[] = [
 ]
 
 function Harness() {
-  const api = useSelect({ options })
+  const api = useSelect<string>({ options })
 
   return (
     <div>
@@ -31,7 +31,7 @@ function Harness() {
 }
 
 function Plain() {
-  const api = useSelect({ options })
+  const api = useSelect<string>({ options })
 
   return (
     <div>
