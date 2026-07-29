@@ -81,18 +81,27 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const onValueChangeRef = useRef(onValueChange)
   onValueChangeRef.current = onValueChange
 
+  const valueRef = useRef(value)
+  valueRef.current = value
+
   const dispatch = useCallback(
     (action: SelectAction<TValue>) => {
-      const before = store.getState().selected
-      store.dispatch((state) => reduce(state, action, ctxRef.current))
-      const after = store.getState().selected
+      const state = store.getState()
+      const next = reduce(state, action, ctxRef.current)
+      const changed = next.selected !== state.selected
 
-      if (after !== before) onValueChangeRef.current?.(after)
+      if (changed) onValueChangeRef.current?.(next.selected)
+
+      // Controlled: report the intent, but leave the value to the parent.
+      // Everything else in the transition — open, query, highlight — applies
+      // either way.
+      const controlled = valueRef.current !== undefined
+      store.dispatch(() => (controlled && changed ? { ...next, selected: state.selected } : next))
     },
     [store],
   )
 
-  // Controlled mode: the parent owns the value, so mirror it back in.
+  // Pick up values the parent changes on its own.
   useEffect(() => {
     if (!value) return
 
