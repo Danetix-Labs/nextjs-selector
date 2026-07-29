@@ -72,7 +72,7 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
   action: SelectAction<TValue, TOption>,
   ctx: SelectContext<TValue, TOption>,
 ): SelectState<TValue, TOption> {
-  const { options, multiple } = ctx
+  const { options, multiple, max } = ctx
 
   switch (action.type) {
     case 'open':
@@ -128,11 +128,15 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
         }
       }
 
-      const selected = state.selected.includes(action.value)
-        ? state.selected.filter((value) => value !== action.value)
-        : [...state.selected, action.value]
+      if (state.selected.includes(action.value)) {
+        return { ...state, selected: state.selected.filter((value) => value !== action.value) }
+      }
 
-      return { ...state, selected }
+      // At the limit, adding is a no-op — removing still works, so the user is
+      // never stuck.
+      if (max !== undefined && state.selected.length >= max) return state
+
+      return { ...state, selected: [...state.selected, action.value] }
     }
 
     case 'selectActive': {
@@ -154,6 +158,19 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
 
     case 'clear':
       return state.selected.length === 0 ? state : { ...state, selected: [] }
+
+    case 'selectAll': {
+      if (!multiple) return state
+
+      const selectable = options.filter((option) => !option.disabled).map((option) => option.value)
+      const room = max === undefined ? selectable.length : max
+      const selected = [
+        ...state.selected,
+        ...selectable.filter((value) => !state.selected.includes(value)),
+      ].slice(0, room)
+
+      return selected.length === state.selected.length ? state : { ...state, selected }
+    }
 
     case 'setStatus':
       return action.status === state.status ? state : { ...state, status: action.status }

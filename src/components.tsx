@@ -4,6 +4,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { createContext, useContext, useEffect, useId, useMemo, useRef } from 'react'
 
 import { groupOptions, type OptionGroup } from './core/grouping.js'
+import { highlightMatches } from './core/highlight.js'
 import { useFormFields } from './form.js'
 import { type PopoverOptions, usePopoverProps } from './popover.js'
 import {
@@ -12,6 +13,7 @@ import {
   useLabelProps,
   useListboxProps,
   useOptionProps,
+  useQuery,
   useSearchProps,
   useSelectedValues,
   useStatus,
@@ -205,6 +207,50 @@ export function Search(props: ComponentPropsWithoutRef<'input'>) {
 }
 
 /**
+ * The option's label with the current query highlighted.
+ *
+ * Splitting happens on a normalized copy, so a label keeps its case and its
+ * diacritics while only the highlight moves.
+ */
+export function Highlight({
+  text,
+  ...props
+}: ComponentPropsWithoutRef<'span'> & { readonly text: string }) {
+  const query = useQuery(useApi())
+  const segments = useMemo(() => highlightMatches(text, query), [text, query])
+
+  return (
+    <span {...props}>
+      {segments.map((segment, index) =>
+        segment.matched ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional by nature
+          <mark key={index} data-part="match">
+            {segment.text}
+          </mark>
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional by nature
+          <span key={index}>{segment.text}</span>
+        ),
+      )}
+    </span>
+  )
+}
+
+/** Selects every enabled option, up to `max`. */
+export function SelectAllButton(props: ComponentPropsWithoutRef<'button'>) {
+  const api = useApi()
+
+  return (
+    <button
+      type="button"
+      data-part="select-all"
+      onClick={() => api.dispatch({ type: 'selectAll' })}
+      {...props}
+    />
+  )
+}
+
+/**
  * Pinned area above the list — a counter, a hint, a filter.
  *
  * Lives outside the listbox on purpose: a listbox may only contain options and
@@ -234,7 +280,7 @@ type RenderOption<TOption> = (option: TOption, index: number) => ReactNode
 function defaultRender<TValue>(option: SelectOption<TValue>, index: number) {
   return (
     <Item key={String(option.value)} option={option} index={index}>
-      <span data-part="option-label">{option.label}</span>
+      <Highlight data-part="option-label" text={option.label} />
       {option.description === undefined ? null : (
         <span data-part="option-description">{option.description}</span>
       )}
@@ -438,6 +484,8 @@ const parts = {
   LoadMore,
   Header,
   Footer,
+  Highlight,
+  SelectAllButton,
   Label,
   Trigger,
   Value,

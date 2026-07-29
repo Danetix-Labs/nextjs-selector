@@ -21,6 +21,8 @@ export interface SelectContext<
 > {
   readonly options: readonly TOption[]
   readonly multiple: boolean
+  /** Upper bound on the selection; `undefined` means no limit. */
+  readonly max?: number
 }
 
 /** Lifecycle of an async option load. */
@@ -63,6 +65,7 @@ export type SelectAction<TValue, TOption extends SelectOption<TValue> = SelectOp
   | { readonly type: 'moveEdge'; readonly edge: 'first' | 'last' }
   | { readonly type: 'select'; readonly value: TValue }
   | { readonly type: 'selectActive' }
+  | { readonly type: 'selectAll' }
   | { readonly type: 'remove'; readonly value: TValue }
   | { readonly type: 'removeLast' }
   | { readonly type: 'clear' }

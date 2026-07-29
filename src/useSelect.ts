@@ -53,6 +53,15 @@ export interface UseSelectConfig<
   readonly createLabel?: (query: string) => string
   /** Called instead of selecting when the create entry is chosen. */
   readonly onCreate?: (label: string) => void
+  /** Upper bound on the selection in multiple mode. */
+  readonly max?: number
+  /**
+   * Values pinned to the top of the list.
+   *
+   * Useful for recents or favourites: they keep their place while the rest of
+   * the list is filtered or reordered.
+   */
+  readonly pinned?: readonly TValue[]
   /**
    * Number of columns when the list is laid out as a grid.
    *
@@ -135,6 +144,17 @@ function defaultFilter<TValue>(option: SelectOption<TValue>, query: string): boo
   return normalize(option.label).includes(normalize(query))
 }
 
+/** Keeps pinned values on top without disturbing the order of the rest. */
+function hoistPinned<TValue, TOption extends SelectOption<TValue>>(
+  options: readonly TOption[],
+  pinned: readonly TValue[],
+): readonly TOption[] {
+  const isPinned = (option: TOption) => pinned.includes(option.value)
+  const top = options.filter(isPinned)
+
+  return top.length === 0 ? options : [...top, ...options.filter((o) => !isPinned(o))]
+}
+
 function defaultCreateLabel(query: string): string {
   return `Создать «${query}»`
 }
@@ -159,6 +179,8 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
     createLabel = defaultCreateLabel,
     onCreate,
     columns = 1,
+    max,
+    pinned,
   } = config
 
   const flags = useMemo<SelectFlags>(
@@ -228,12 +250,14 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
         ? sourceOptions
         : sourceOptions.filter((option) => filter(option, query))
 
-    return creatable ? withCreateOption(matched, query, createLabel) : matched
-  }, [sourceOptions, query, filter, isAsync, creatable, createLabel])
+    const withPinnedFirst = pinned === undefined ? matched : hoistPinned(matched, pinned)
+
+    return creatable ? withCreateOption(withPinnedFirst, query, createLabel) : withPinnedFirst
+  }, [sourceOptions, query, filter, isAsync, creatable, createLabel, pinned])
 
   // Refs keep `dispatch` identity-stable while still reading fresh values.
-  const ctxRef = useRef<SelectContext<TValue, TOption>>({ options: visibleOptions, multiple })
-  ctxRef.current = { options: visibleOptions, multiple }
+  const ctxRef = useRef<SelectContext<TValue, TOption>>({ options: visibleOptions, multiple, max })
+  ctxRef.current = { options: visibleOptions, multiple, max }
 
   const allOptionsRef = useRef(sourceOptions)
   allOptionsRef.current = sourceOptions
