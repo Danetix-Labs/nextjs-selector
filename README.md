@@ -227,6 +227,20 @@ const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
 <Select.Virtualized itemHeight={34} style={{ height: '15rem' }} />
 ```
 
+### Мобильные: нижняя шторка
+
+На узком экране выпадающий список — неудачная форма: мелкие цели и список,
+воюющий с экранной клавиатурой. Шторка это чинит, но включается осознанно —
+для каждого виджета отдельно:
+
+```tsx
+<Select options={options} label="Статус" sheet />
+<Select options={options} label="Статус" sheet sheetMedia="(max-width: 480px)" />
+```
+
+По умолчанию выключено. Разметка и поведение не меняются — меняется только
+размещение, о чём сообщает `data-mode="sheet" | "dropdown"`.
+
 ### Производительность
 
 Состояние живёт во внешнем store, а компоненты подписываются на отдельные

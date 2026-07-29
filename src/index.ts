@@ -31,5 +31,6 @@ export {
 } from './components.js'
 export { MultiSelect, SelectField, type SelectFieldProps } from './field.js'
 export * from './headless.js'
+export { useMediaQuery } from './react/useMediaQuery.js'
 export { Select } from './select.js'
 export { mergeProps, Slot, type SlotProps } from './slot.js'

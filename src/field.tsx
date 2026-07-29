@@ -17,12 +17,14 @@ import {
   Value,
   Virtualized,
 } from './components.js'
+import type { PopoverOptions } from './popover.js'
 import type { SelectOption } from './types.js'
 
 export interface SelectFieldProps<
   TValue,
   TOption extends SelectOption<TValue> = SelectOption<TValue>,
-> extends Omit<RootProps<TValue, TOption>, 'children'> {
+> extends Omit<RootProps<TValue, TOption>, 'children'>,
+    PopoverOptions {
   readonly label?: ReactNode
   readonly placeholder?: string
   /** Adds the search box. Implied when `loadOptions` is present. */
@@ -63,6 +65,9 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
   clearable = false,
   itemHeight,
   chips,
+  topLayer,
+  sheet,
+  sheetMedia,
   ...config
 }: SelectFieldProps<TValue, TOption>) {
   const withSearch = searchable ?? config.loadOptions !== undefined
@@ -86,7 +91,7 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
         {clearable ? <ClearButton>×</ClearButton> : null}
       </div>
 
-      <Content>
+      <Content topLayer={topLayer} sheet={sheet} sheetMedia={sheetMedia}>
         {withSearch ? <Search aria-label={accessibleName} placeholder={searchPlaceholder} /> : null}
         {config.loadOptions ? <Loading>{loadingMessage}</Loading> : null}
         {config.loadOptions ? <LoadError>{errorMessage}</LoadError> : null}

@@ -8,7 +8,7 @@ import {
   VirtualizedSelect,
 } from './demos'
 import { FormDemo } from './form-demo'
-import { IconGrid, StatusSelect } from './rich'
+import { IconGrid, SheetSelect, StatusSelect } from './rich'
 
 /**
  * A Server Component: the page itself ships no JavaScript. Only the widgets
@@ -59,6 +59,15 @@ export default function Page() {
         <h2>Иконки, галочка и подпись под пунктом</h2>
         <p>Раскладка пункта — ваша разметка через функцию-рендер.</p>
         <StatusSelect />
+      </section>
+
+      <section>
+        <h2>Нижняя шторка на узком экране</h2>
+        <p>
+          Опция включается для каждого виджета отдельно. Сузьте окно до 640 пикселей — список
+          превратится в шторку; разметка и поведение те же.
+        </p>
+        <SheetSelect />
       </section>
 
       <section>

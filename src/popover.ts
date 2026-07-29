@@ -4,6 +4,8 @@ import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useIsOpen } from './props.js'
+import { useMediaQuery } from './react/useMediaQuery.js'
+import type { SelectOption } from './types.js'
 import type { SelectApi } from './useSelect.js'
 
 /** Native top-layer popover — Baseline since Safari 17 / Firefox 132. */
@@ -35,14 +37,9 @@ interface ToggleEventLike extends Event {
   readonly newState?: string
 }
 
-/**
- * Listbox wired to the native popover.
- *
- * Where the API exists the browser hands us the top layer, light dismiss and
- * Esc for free; where it does not, the element renders inline and `data-state`
- * is enough to hide it in CSS. Detection runs after mount so server and client
- * markup agree during hydration.
- */
+/** Narrow screens, where a dropdown is the wrong shape. */
+export const DEFAULT_SHEET_MEDIA = '(max-width: 640px)'
+
 export interface PopoverOptions {
   /**
    * Escape clipping ancestors by using the native popover.
@@ -51,15 +48,33 @@ export interface PopoverOptions {
    * against its trigger, so place it yourself if you turn this on.
    */
   readonly topLayer?: boolean
+  /**
+   * Present the list as a bottom sheet where `sheetMedia` matches.
+   *
+   * Off by default — a sheet is a deliberate product decision, not something
+   * to infer for someone. On a phone a dropdown means small targets and a list
+   * fighting the on-screen keyboard, which is what the sheet fixes.
+   */
+  readonly sheet?: boolean
+  /** Defaults to `(max-width: 640px)`. Pass `'all'` for a sheet everywhere. */
+  readonly sheetMedia?: string
 }
 
-export function usePopoverProps<TValue>(
-  api: SelectApi<TValue>,
-  { topLayer = false }: PopoverOptions = {},
+/**
+ * Presentation of the listbox: dropdown by default, bottom sheet where opted in.
+ *
+ * The markup and behaviour stay identical either way — only placement changes,
+ * announced through `data-mode` so the styling can follow.
+ */
+export function usePopoverProps<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+  { topLayer = false, sheet = false, sheetMedia = DEFAULT_SHEET_MEDIA }: PopoverOptions = {},
 ) {
   const open = useIsOpen(api)
   const ref = useRef<HTMLElement | null>(null)
   const [enhanced, setEnhanced] = useState(false)
+
+  const asSheet = useMediaQuery(sheet ? sheetMedia : null)
 
   // Opt-in, and off by default. Moving the listbox to the top layer severs it
   // from the trigger it anchors to: `position-area` resolves to `none` and the
@@ -162,7 +177,9 @@ export function usePopoverProps<TValue>(
     popover: enhanced ? ('auto' as const) : undefined,
     'data-part': 'content',
     'data-state': open ? 'open' : 'closed',
-    'data-side': side,
+    // A sheet is placed by the viewport, so the measured side is meaningless.
+    'data-side': asSheet ? undefined : side,
+    'data-mode': asSheet ? 'sheet' : 'dropdown',
     style: { positionAnchor: api.ids.anchor } as CSSProperties,
   }
 }

@@ -5,7 +5,7 @@ import { createContext, useContext, useId, useMemo } from 'react'
 
 import { groupOptions, type OptionGroup } from './core/grouping.js'
 import { useFormFields } from './form.js'
-import { usePopoverProps } from './popover.js'
+import { type PopoverOptions, usePopoverProps } from './popover.js'
 import {
   useIsOpen,
   useLabelProps,
@@ -188,12 +188,12 @@ export function ClearButton(props: ComponentPropsWithoutRef<'button'>) {
   )
 }
 
-export interface ContentProps extends ComponentPropsWithoutRef<'div'> {
+export interface ContentProps extends ComponentPropsWithoutRef<'div'>, PopoverOptions {
   readonly asChild?: boolean
 }
 
-export function Content({ asChild, ...props }: ContentProps) {
-  const popoverProps = usePopoverProps(useApi())
+export function Content({ asChild, topLayer, sheet, sheetMedia, ...props }: ContentProps) {
+  const popoverProps = usePopoverProps(useApi(), { topLayer, sheet, sheetMedia })
   if (asChild) return <Slot {...popoverProps} {...props} />
 
   return <div {...popoverProps} {...props} />

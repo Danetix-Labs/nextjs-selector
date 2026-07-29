@@ -4,6 +4,8 @@
 
 export { type HiddenFieldProps, type UseFormFieldsConfig, useFormFields } from './form.js'
 export {
+  DEFAULT_SHEET_MEDIA,
+  type PopoverOptions,
   supportsAnchorPositioning,
   supportsPopover,
   useAnchorStyle,

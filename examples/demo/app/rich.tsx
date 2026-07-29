@@ -48,6 +48,19 @@ export function StatusSelect() {
   )
 }
 
+/** Bottom sheet on narrow screens — opted into per widget. */
+export function SheetSelect() {
+  return (
+    <Select
+      options={statuses}
+      label="Статус (шторка на узком экране)"
+      placeholder="Выберите"
+      searchable
+      sheet
+    />
+  )
+}
+
 /** A grid: the CSS is yours, the keyboard follows via `columns`. */
 export function IconGrid() {
   return (

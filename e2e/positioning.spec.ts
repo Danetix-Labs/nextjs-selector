@@ -152,3 +152,47 @@ test.describe('поведение в браузере', () => {
     expect(rendered).toBeLessThan(30)
   })
 })
+
+test.describe('нижняя шторка', () => {
+  const SHEET = 'Нижняя шторка'
+
+  test('на узком экране список прилипает к низу во всю ширину', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 700 })
+    await page.goto('/')
+
+    const root = widget(page, SHEET)
+    await root.getByRole('combobox').scrollIntoViewIfNeeded()
+    await root.getByRole('combobox').click()
+
+    const content = root.locator('[data-part="content"]')
+    await expect(content).toHaveAttribute('data-mode', 'sheet')
+
+    const contentBox = await box(content)
+    const viewport = page.viewportSize()
+    if (!viewport) throw new Error('нет размеров вьюпорта')
+
+    expect(Math.abs(contentBox.y + contentBox.height - viewport.height)).toBeLessThan(2)
+    expect(Math.abs(contentBox.width - viewport.width)).toBeLessThan(2)
+  })
+
+  test('на широком экране тот же виджет остаётся выпадающим списком', async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 800 })
+    await page.goto('/')
+
+    const root = widget(page, SHEET)
+    await root.getByRole('combobox').scrollIntoViewIfNeeded()
+    await root.getByRole('combobox').click()
+
+    await expect(root.locator('[data-part="content"]')).toHaveAttribute('data-mode', 'dropdown')
+  })
+
+  test('виджет без опции шторкой не становится даже на узком экране', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 700 })
+    await page.goto('/')
+
+    const root = widget(page, BASIC)
+    await root.getByRole('combobox').click()
+
+    await expect(root.locator('[data-part="content"]')).toHaveAttribute('data-mode', 'dropdown')
+  })
+})
