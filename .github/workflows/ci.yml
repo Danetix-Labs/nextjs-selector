@@ -224,5 +224,5 @@ jobs:
 
       # Browser-level checks: where the listbox actually lands is something
       # jsdom cannot answer.
-      - run: npx playwright install chromium
+      - run: npx playwright install chromium firefox webkit
       - run: npm run test:e2e
