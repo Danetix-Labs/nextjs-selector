@@ -23,5 +23,11 @@ export {
 } from './props.js'
 export { useStoreSlice } from './react/useStoreSlice.js'
 export type { SelectAction, SelectContext, SelectOption, SelectState } from './types.js'
-export { type SelectApi, type SelectIds, type UseSelectConfig, useSelect } from './useSelect.js'
+export {
+  type SelectApi,
+  type SelectFlags,
+  type SelectIds,
+  type UseSelectConfig,
+  useSelect,
+} from './useSelect.js'
 export { type UseVirtualConfig, useVirtual, type VirtualList } from './virtual.js'

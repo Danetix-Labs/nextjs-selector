@@ -29,6 +29,19 @@ export interface UseSelectConfig<TValue> {
    * Memoize it, or filtering re-runs on every render.
    */
   readonly filter?: (option: SelectOption<TValue>, query: string) => boolean
+  /** Inert: neither opens nor changes. */
+  readonly disabled?: boolean
+  /** Opens and navigates, but the selection cannot change. */
+  readonly readOnly?: boolean
+  readonly required?: boolean
+  readonly invalid?: boolean
+}
+
+export interface SelectFlags {
+  readonly disabled: boolean
+  readonly readOnly: boolean
+  readonly required: boolean
+  readonly invalid: boolean
 }
 
 /** Stable handle — no member changes identity across renders. */
@@ -44,7 +57,17 @@ export interface SelectApi<TValue> {
    * while a search narrows the list.
    */
   readonly getAllOptions: () => readonly SelectOption<TValue>[]
+  readonly flags: SelectFlags
 }
+
+/** Actions that change the selection — blocked while read-only. */
+const MUTATING: ReadonlySet<SelectAction<unknown>['type']> = new Set([
+  'select',
+  'selectActive',
+  'remove',
+  'removeLast',
+  'clear',
+])
 
 const selectQuery = <TValue>(state: SelectState<TValue>): string => state.query
 
@@ -67,7 +90,16 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
     defaultValue,
     onValueChange,
     filter = defaultFilter,
+    disabled = false,
+    readOnly = false,
+    required = false,
+    invalid = false,
   } = config
+
+  const flags = useMemo<SelectFlags>(
+    () => ({ disabled, readOnly, required, invalid }),
+    [disabled, readOnly, required, invalid],
+  )
 
   const id = useId()
   const [store] = useState(() => createStore(initialState<TValue>(value ?? defaultValue ?? [])))
@@ -92,8 +124,15 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const valueRef = useRef(value)
   valueRef.current = value
 
+  const flagsRef = useRef(flags)
+  flagsRef.current = flags
+
   const dispatch = useCallback(
     (action: SelectAction<TValue>) => {
+      const { disabled: isDisabled, readOnly: isReadOnly } = flagsRef.current
+      if (isDisabled) return
+      if (isReadOnly && MUTATING.has(action.type)) return
+
       const state = store.getState()
       const next = reduce(state, action, ctxRef.current)
       const changed = next.selected !== state.selected
@@ -132,7 +171,7 @@ export function useSelect<TValue>(config: UseSelectConfig<TValue>): SelectApi<TV
   const getAllOptions = useCallback(() => allOptionsRef.current, [])
 
   return useMemo(
-    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions }),
-    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions],
+    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags }),
+    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags],
   )
 }

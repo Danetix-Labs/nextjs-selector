@@ -30,6 +30,9 @@ jobs:
       - run: npm run build
       - run: npm run check:exports
 
+      # Size is the headline claim against react-select; guard it.
+      - run: npm run size
+
       - name: Pack tarball
         # --pack-destination does not create the directory itself.
         run: mkdir -p artifact && npm pack --pack-destination ./artifact

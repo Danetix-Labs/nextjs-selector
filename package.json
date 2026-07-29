@@ -78,9 +78,10 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "check:exports": "publint --strict && attw --pack . --profile node16 --exclude-entrypoints styles.css",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:exports",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:exports && npm run size",
     "prepublishOnly": "npm run typecheck && npm run build",
-    "release": "npm run check && changeset publish"
+    "release": "npm run check && changeset publish",
+    "size": "size-limit"
   },
   "publishConfig": {
     "access": "public",
@@ -90,6 +91,7 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.6",
     "@changesets/cli": "^2.31.1",
+    "@size-limit/preset-small-lib": "^13.0.2",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -101,6 +103,7 @@
     "publint": "^0.3.22",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "size-limit": "^13.0.2",
     "tsdown": "^0.22.14",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
