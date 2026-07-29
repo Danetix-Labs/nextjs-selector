@@ -194,11 +194,17 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
     creatable = false,
     createLabel = defaultCreateLabel,
     onCreate,
-    columns = 1,
-    max,
+    columns: columnsInput = 1,
+    max: maxInput,
     pinned,
     cache = false,
   } = config
+
+  // Nonsense settings are clamped rather than trusted: a zero column count
+  // turns arrow-down into a step of zero rows, and a negative limit would read
+  // as «no limit» further down.
+  const columns = Math.max(1, Math.floor(columnsInput) || 1)
+  const max = maxInput === undefined ? undefined : Math.max(0, Math.floor(maxInput))
 
   const flags = useMemo<SelectFlags>(
     () => ({ disabled, readOnly, required, invalid }),

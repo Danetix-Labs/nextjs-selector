@@ -185,6 +185,9 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
     case 'reorder': {
       const { from, to } = action
       const { length } = state.selected
+      // Integer check first: every comparison with NaN is false, so bounds
+      // alone would wave it through and splice would corrupt the selection.
+      if (!Number.isInteger(from) || !Number.isInteger(to)) return state
       if (from === to || from < 0 || to < 0 || from >= length || to >= length) return state
 
       const selected = [...state.selected]
