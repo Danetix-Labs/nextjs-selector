@@ -138,6 +138,14 @@ export function usePopoverProps<TValue, TOption extends SelectOption<TValue>>(
   // ancestor does not resolve reliably — nor does it exist at all in browsers
   // without anchor positioning.
   const [side, setSide] = useState<'bottom' | 'top'>('bottom')
+  /**
+   * Where the trigger sits inside the wrapper.
+   *
+   * The wrapper also holds the label and the chips, so «top of the wrapper» is
+   * not «top of the field»: anchoring to it left the flipped list floating
+   * above the label, detached from the control it belongs to.
+   */
+  const [inset, setInset] = useState({ start: 0, end: 0 })
 
   useEffect(() => {
     if (!open) return
@@ -148,11 +156,20 @@ export function usePopoverProps<TValue, TOption extends SelectOption<TValue>>(
       if (!element || !trigger) return
 
       const anchor = trigger.getBoundingClientRect()
+      const wrapper = (element.closest('[data-part="root"]') as HTMLElement).getBoundingClientRect()
       const needed = element.offsetHeight || element.getBoundingClientRect().height
       const below = window.innerHeight - anchor.bottom
       const above = anchor.top
 
       setSide(below < needed && above > below ? 'top' : 'bottom')
+      setInset((previous) => {
+        const next = {
+          start: Math.round(wrapper.bottom - anchor.top),
+          end: Math.round(anchor.bottom - wrapper.top),
+        }
+
+        return previous.start === next.start && previous.end === next.end ? previous : next
+      })
     }
 
     // Throttled to one measurement per frame.
@@ -200,7 +217,11 @@ export function usePopoverProps<TValue, TOption extends SelectOption<TValue>>(
     // A sheet is placed by the viewport, so the measured side is meaningless.
     'data-side': asSheet ? undefined : side,
     'data-mode': asSheet ? 'sheet' : 'dropdown',
-    style: { positionAnchor: api.ids.anchor } as CSSProperties,
+    style: {
+      positionAnchor: api.ids.anchor,
+      '--sel-anchor-start': `${inset.start}px`,
+      '--sel-anchor-end': `${inset.end}px`,
+    } as CSSProperties,
   }
 }
 

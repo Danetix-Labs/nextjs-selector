@@ -21,7 +21,9 @@
  */
 [data-part='content'] {
   position: absolute;
-  top: 100%;
+  /* Measured from the trigger, not from the wrapper: the wrapper also holds
+     the label and the chips. */
+  top: var(--sel-anchor-end, 100%);
   inset-inline-start: 0;
   z-index: 50;
   width: 100%;
@@ -31,7 +33,7 @@
 /* Flipped above the trigger when the viewport leaves no room below. */
 [data-part='content'][data-side='top'] {
   top: auto;
-  bottom: 100%;
+  bottom: var(--sel-anchor-start, 100%);
   margin-block: 0 var(--sel-offset, 0.25rem);
 }
 

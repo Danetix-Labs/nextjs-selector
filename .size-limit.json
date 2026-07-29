@@ -8,13 +8,13 @@
   {
     "name": "headless",
     "path": "dist/headless.js",
-    "limit": "5.5 kB",
+    "limit": "5.8 kB",
     "ignore": ["react"]
   },
   {
     "name": "полный вход",
     "path": "dist/index.js",
-    "limit": "8.5 kB",
+    "limit": "8.7 kB",
     "ignore": ["react"]
   }
 ]
