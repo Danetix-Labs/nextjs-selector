@@ -112,9 +112,12 @@ section {
   color: var(--muted);
 }
 
+[data-part="root"] {
+  position: relative;
+}
+
 [data-part="content"] {
   z-index: 10;
-  margin-block-start: 0.25rem;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
@@ -126,15 +129,7 @@ section {
   display: none;
 }
 
-/* Anchor positioning where the browser has it; plain flow elsewhere. */
-@supports (anchor-name: --probe) {
-  [data-part="content"] {
-    position: absolute;
-    position-area: bottom span-inline-end;
-    position-try-fallbacks: flip-block;
-    width: anchor-size(width);
-  }
-}
+/* Positioning itself comes from nextjs-selector/styles.css. */
 
 [data-part="search"] {
   width: 100%;

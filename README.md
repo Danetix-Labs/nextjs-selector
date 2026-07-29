@@ -36,7 +36,29 @@ CI проверяет на каждом push и PR:
 
 ## Использование
 
+### Обычный случай — один компонент
+
+```tsx
+'use client'
+
+import { Select, MultiSelect } from 'nextjs-selector'
+
+<Select options={options} label="Фреймворк" placeholder="Выберите" clearable />
+
+<MultiSelect
+  options={countries}
+  label="Страны"
+  searchable
+  itemHeight={34}   // включает виртуализацию
+/>
+```
+
+Обязателен только `options`. Поиск, чипы, пустое состояние, индикаторы
+загрузки и ошибки подключаются флагами.
+
 ### Составные компоненты
+
+Когда нужна другая раскладка — те же части под тем же именем.
 
 ```tsx
 'use client'

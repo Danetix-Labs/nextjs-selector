@@ -7,41 +7,47 @@
  *   import 'nextjs-selector/styles.css'
  */
 
-[data-part='listbox'] {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+[data-part='root'] {
+  position: relative;
 }
 
-[data-part='listbox'][data-state='closed'] {
+[data-part='content'][data-state='closed'] {
   display: none;
 }
 
-/* Native popover: the browser owns the top layer, we only place the box. */
-[data-part='listbox']:popover-open {
+/* Fallback: position against the root wrapper. */
+[data-part='content'] {
   position: absolute;
-  margin: 0;
+  inset-inline-start: 0;
+  top: 100%;
+  z-index: 50;
+  width: 100%;
+  margin-block-start: var(--sel-offset, 0.25rem);
+}
+
+/* Where the platform has anchor positioning, let it place and flip the box. */
+@supports (anchor-name: --probe) {
+  [data-part='content'] {
+    position: absolute;
+    top: auto;
+    inset-inline-start: auto;
+    position-area: bottom span-inline-end;
+    position-try-fallbacks: flip-block;
+    width: anchor-size(width);
+  }
+}
+
+/* Native popover owns the top layer, so the wrapper stops being the reference. */
+[data-part='content']:popover-open {
+  margin: var(--sel-offset, 0.25rem) 0 0;
   border: 0;
   padding: 0;
-  overflow: auto;
+  overflow: visible;
+}
+
+[data-part='listbox'] {
   max-height: var(--sel-max-height, 20rem);
-  width: var(--sel-width, anchor-size(width));
-}
-
-@supports (anchor-name: --probe) {
-  [data-part='listbox'] {
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block, flip-inline;
-    margin-block-start: var(--sel-offset, 0.25rem);
-  }
-}
-
-/* Without anchor positioning the listbox falls back to normal flow, so the
-   trigger's wrapper becomes the containing block. */
-@supports not (anchor-name: --probe) {
-  [data-part='listbox']:not(:popover-open) {
-    position: relative;
-  }
+  overflow-y: auto;
 }
 
 [data-part='option'] {

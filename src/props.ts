@@ -1,6 +1,6 @@
 'use client'
 
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 
 import { appendToBuffer, emptyBuffer, matchPrefix } from './core/typeahead.js'
@@ -196,6 +196,10 @@ export function useTriggerProps<TValue>(api: SelectApi<TValue>) {
         'aria-invalid': api.flags.invalid || undefined,
         'aria-readonly': api.flags.readOnly || undefined,
         disabled: api.flags.disabled || undefined,
+        // The trigger declares the anchor its listbox positions against —
+        // leaving this to the consumer means a dropdown that flies to the
+        // corner of the page when they forget.
+        style: { anchorName: api.ids.anchor } as CSSProperties,
         'data-part': 'trigger',
         'data-state': open ? 'open' : 'closed',
         'data-multiple': flag(api.multiple),

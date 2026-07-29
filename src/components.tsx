@@ -35,6 +35,7 @@ export interface RootProps<TValue> extends UseSelectConfig<TValue> {
   readonly children: ReactNode
   /** Enables hidden form fields under this name. */
   readonly name?: string
+  readonly className?: string
 }
 
 /**
@@ -43,13 +44,17 @@ export interface RootProps<TValue> extends UseSelectConfig<TValue> {
  * The context value is the stable api handle, so nothing re-renders merely
  * because it is provided. Pieces that depend on state subscribe themselves.
  */
-export function Root<TValue>({ children, name, ...config }: RootProps<TValue>) {
+export function Root<TValue>({ children, name, className, ...config }: RootProps<TValue>) {
   const api = useSelect(config)
 
+  // A real element, not just a provider: browsers without anchor positioning
+  // need a positioned ancestor for the listbox to fall back to.
   return (
     <SelectContext.Provider value={api as SelectApi<unknown>}>
-      {children}
-      {name ? <HiddenFields name={name} /> : null}
+      <div data-part="root" className={className}>
+        {children}
+        {name ? <HiddenFields name={name} /> : null}
+      </div>
     </SelectContext.Provider>
   )
 }
@@ -345,7 +350,7 @@ export function Empty(props: ComponentPropsWithoutRef<'div'>) {
   return <div data-part="empty" {...props} />
 }
 
-export const Select = {
+const parts = {
   Root,
   Chips,
   Loading,
@@ -362,3 +367,5 @@ export const Select = {
   ItemIndicator,
   Empty,
 }
+
+export { parts as selectParts }

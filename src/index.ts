@@ -22,7 +22,6 @@ export {
   Root,
   type RootProps,
   Search,
-  Select,
   Trigger,
   type TriggerProps,
   Value,
@@ -30,5 +29,7 @@ export {
   Virtualized,
   type VirtualizedProps,
 } from './components.js'
+export { MultiSelect, SelectField, type SelectFieldProps } from './field.js'
 export * from './headless.js'
+export { Select } from './select.js'
 export { mergeProps, Slot, type SlotProps } from './slot.js'
