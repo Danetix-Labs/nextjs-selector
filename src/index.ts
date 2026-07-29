@@ -19,6 +19,7 @@ export {
   type ListProps,
   LoadError,
   Loading,
+  LoadMore,
   Root,
   type RootProps,
   Search,

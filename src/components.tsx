@@ -1,12 +1,13 @@
 'use client'
 
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { createContext, useContext, useId, useMemo } from 'react'
+import { createContext, useContext, useEffect, useId, useMemo, useRef } from 'react'
 
 import { groupOptions, type OptionGroup } from './core/grouping.js'
 import { useFormFields } from './form.js'
 import { type PopoverOptions, usePopoverProps } from './popover.js'
 import {
+  useHasMore,
   useIsOpen,
   useLabelProps,
   useListboxProps,
@@ -347,6 +348,41 @@ export function ItemIndicator({
   return <span data-part="indicator" aria-hidden="true" {...props} />
 }
 
+/**
+ * Sentinel that asks for the next page when it scrolls into view.
+ *
+ * Renders nothing once the source says there is no more; put it at the end of
+ * the list. Without IntersectionObserver it degrades to a button, so the last
+ * page is still reachable.
+ */
+export function LoadMore({ children = 'Показать ещё', ...props }: ComponentPropsWithoutRef<'div'>) {
+  const api = useApi()
+  const hasMore = useHasMore(api)
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!hasMore || !element || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) api.loadMore()
+    })
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [hasMore, api])
+
+  if (!hasMore) return null
+
+  return (
+    <div ref={ref} data-part="load-more" {...props}>
+      <button type="button" onClick={() => api.loadMore()}>
+        {children}
+      </button>
+    </div>
+  )
+}
+
 /** Rendered while an async load is in flight. */
 export function Loading(props: ComponentPropsWithoutRef<'div'>) {
   const status = useStatus(useApi())
@@ -379,6 +415,7 @@ const parts = {
   Chips,
   Loading,
   LoadError,
+  LoadMore,
   Label,
   Trigger,
   Value,

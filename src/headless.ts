@@ -13,6 +13,7 @@ export {
 } from './popover.js'
 export {
   type OptionPropsConfig,
+  useHasMore,
   useIsOpen,
   useLabelProps,
   useListboxProps,
@@ -33,6 +34,7 @@ export type {
   SelectStatus,
 } from './types.js'
 export {
+  type LoadResult,
   type SelectApi,
   type SelectFlags,
   type SelectIds,

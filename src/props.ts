@@ -59,6 +59,15 @@ export function useVisibleOptions<TValue, TOption extends SelectOption<TValue>>(
   )
 }
 
+export function useHasMore<TValue, TOption extends SelectOption<TValue>>(
+  api: SelectApi<TValue, TOption>,
+): boolean {
+  return useStoreSlice(
+    api.store,
+    useCallback((state: SelectState<TValue, TOption>) => state.hasMore, []),
+  )
+}
+
 export function useStatus<TValue, TOption extends SelectOption<TValue>>(
   api: SelectApi<TValue, TOption>,
 ): SelectStatus {

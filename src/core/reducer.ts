@@ -11,6 +11,7 @@ export function initialState<TValue, TOption extends SelectOption<TValue> = Sele
     status: 'idle',
     version: 0,
     visible,
+    hasMore: false,
     query: '',
     activeIndex: NO_ACTIVE,
     selected,
@@ -165,7 +166,12 @@ export function reduce<TValue, TOption extends SelectOption<TValue> = SelectOpti
         ...state,
         status: 'idle',
         version: state.version + 1,
-        activeIndex: state.open ? firstSelectable(options) : state.activeIndex,
+        hasMore: action.hasMore,
+        // A later page must not yank the highlight back to the top.
+        activeIndex:
+          state.open && state.activeIndex === NO_ACTIVE
+            ? firstSelectable(options)
+            : state.activeIndex,
       }
   }
 }

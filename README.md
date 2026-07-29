@@ -227,6 +227,23 @@ const virtual = useVirtual(api, { count: visible.length, itemHeight: 32 })
 <Select.Virtualized itemHeight={34} style={{ height: '15rem' }} />
 ```
 
+### Подгрузка страницами
+
+Источник может отдавать курсор — тогда список догружается по мере прокрутки:
+
+```tsx
+<Select
+  options={[]}
+  loadOptions={async (query, cursor) => {
+    const page = await api.search(query, cursor)
+    return { options: page.items, nextCursor: page.next }
+  }}
+/>
+```
+
+Отсутствие `nextCursor` завершает пагинацию. Массив вместо объекта означает
+«это всё» — старый контракт продолжает работать.
+
 ### Мобильные: нижняя шторка
 
 На узком экране выпадающий список — неудачная форма: мелкие цели и список,

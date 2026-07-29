@@ -10,6 +10,7 @@ import {
   List,
   LoadError,
   Loading,
+  LoadMore,
   Root,
   type RootProps,
   Search,
@@ -39,6 +40,8 @@ export interface SelectFieldProps<
   readonly emptyMessage?: ReactNode
   readonly loadingMessage?: ReactNode
   readonly errorMessage?: ReactNode
+  /** Label of the «load more» control. */
+  readonly loadMoreLabel?: ReactNode
   readonly clearable?: boolean
   /** Row height in pixels. Setting it switches the list to virtualization. */
   readonly itemHeight?: number
@@ -62,6 +65,7 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
   emptyMessage = 'Ничего не найдено',
   loadingMessage = 'Загрузка…',
   errorMessage = 'Не удалось загрузить',
+  loadMoreLabel = 'Показать ещё',
   clearable = false,
   itemHeight,
   chips,
@@ -97,6 +101,7 @@ export function SelectField<TValue, TOption extends SelectOption<TValue> = Selec
         {config.loadOptions ? <LoadError>{errorMessage}</LoadError> : null}
         <Empty>{emptyMessage}</Empty>
         {itemHeight === undefined ? <List /> : <Virtualized itemHeight={itemHeight} />}
+        {config.loadOptions ? <LoadMore>{loadMoreLabel}</LoadMore> : null}
       </Content>
     </Root>
   )

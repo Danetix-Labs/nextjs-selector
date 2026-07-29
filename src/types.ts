@@ -45,6 +45,8 @@ export interface SelectState<TValue, TOption extends SelectOption<TValue> = Sele
    * the owner has refreshed its refs and would read stale data.
    */
   readonly visible: readonly TOption[]
+  /** Whether the async source says another page exists. */
+  readonly hasMore: boolean
   readonly query: string
   /** Index into the filtered options, or -1 when nothing is active. */
   readonly activeIndex: number
@@ -65,5 +67,5 @@ export type SelectAction<TValue, TOption extends SelectOption<TValue> = SelectOp
   | { readonly type: 'removeLast' }
   | { readonly type: 'clear' }
   | { readonly type: 'setStatus'; readonly status: SelectStatus }
-  | { readonly type: 'optionsLoaded' }
+  | { readonly type: 'optionsLoaded'; readonly hasMore: boolean }
   | { readonly type: 'setVisible'; readonly options: readonly TOption[] }

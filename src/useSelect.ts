@@ -44,7 +44,7 @@ export interface UseSelectConfig<
    * list and local filtering is skipped — the source is expected to have
    * filtered already.
    */
-  readonly loadOptions?: (query: string) => Promise<readonly TOption[]>
+  readonly loadOptions?: (query: string, cursor?: unknown) => Promise<LoadResult<TOption>>
   /** Delay before an async load fires. Defaults to 300 ms. */
   readonly debounceMs?: number
   /** Offers the current query as a new option when nothing matches exactly. */
@@ -60,6 +60,28 @@ export interface UseSelectConfig<
    * step by a whole row. The grid itself is your CSS.
    */
   readonly columns?: number
+}
+
+/**
+ * What an async source may return.
+ *
+ * A bare array means «that is everything». The object form carries a cursor,
+ * and the absence of `nextCursor` is what ends the pagination.
+ */
+export type LoadResult<TOption> =
+  | readonly TOption[]
+  | { readonly options: readonly TOption[]; readonly nextCursor?: unknown }
+
+function toPage<TOption>(result: LoadResult<TOption>): {
+  options: readonly TOption[]
+  nextCursor: unknown
+} {
+  return Array.isArray(result)
+    ? { options: result, nextCursor: undefined }
+    : {
+        options: (result as { options: readonly TOption[] }).options,
+        nextCursor: (result as { nextCursor?: unknown }).nextCursor,
+      }
 }
 
 export interface SelectFlags {
@@ -85,6 +107,8 @@ export interface SelectApi<TValue, TOption extends SelectOption<TValue> = Select
   readonly flags: SelectFlags
   /** Columns in the visual layout; 1 means a plain vertical list. */
   readonly columns: number
+  /** Requests the next page from a paginated async source. */
+  readonly loadMore: () => void
 }
 
 /** Actions that change the selection — blocked while read-only. */
@@ -153,6 +177,8 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
   const loadRef = useRef(loadOptions)
   loadRef.current = loadOptions
 
+  const cursorRef = useRef<unknown>(undefined)
+
   // Async source: debounce the query, drop results that arrive out of order.
   useEffect(() => {
     if (!loadRef.current) return
@@ -166,8 +192,17 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
       loadRef.current?.(query).then(
         (result) => {
           if (!current) return
-          setLoadedOptions(result)
-          store.dispatch((state) => reduce(state, { type: 'optionsLoaded' }, ctxRef.current))
+
+          const page = toPage(result)
+          cursorRef.current = page.nextCursor
+          setLoadedOptions(page.options)
+          store.dispatch((state) =>
+            reduce(
+              state,
+              { type: 'optionsLoaded', hasMore: page.nextCursor !== undefined },
+              ctxRef.current,
+            ),
+          )
         },
         () => {
           if (!current) return
@@ -278,11 +313,58 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
     [id],
   )
 
+  /**
+   * Fetches the next page and appends it.
+   *
+   * Does nothing when there is no cursor left, when a request is already in
+   * flight, or when the source is not paginated at all — so callers may fire
+   * it freely on scroll.
+   */
+  const loadMore = useCallback(() => {
+    const state = store.getState()
+    if (!loadRef.current || !state.hasMore || state.status === 'loading') return
+
+    const cursor = cursorRef.current
+    store.dispatch((current) =>
+      reduce(current, { type: 'setStatus', status: 'loading' }, ctxRef.current),
+    )
+
+    loadRef.current(store.getState().query, cursor).then(
+      (result) => {
+        const page = toPage(result)
+        cursorRef.current = page.nextCursor
+        setLoadedOptions((previous) => [...(previous ?? []), ...page.options])
+        store.dispatch((current) =>
+          reduce(
+            current,
+            { type: 'optionsLoaded', hasMore: page.nextCursor !== undefined },
+            ctxRef.current,
+          ),
+        )
+      },
+      () => {
+        store.dispatch((current) =>
+          reduce(current, { type: 'setStatus', status: 'error' }, ctxRef.current),
+        )
+      },
+    )
+  }, [store])
+
   const getVisibleOptions = useCallback(() => ctxRef.current.options, [])
   const getAllOptions = useCallback(() => allOptionsRef.current, [])
 
   return useMemo(
-    () => ({ store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags, columns }),
-    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags, columns],
+    () => ({
+      store,
+      ids,
+      multiple,
+      dispatch,
+      getVisibleOptions,
+      getAllOptions,
+      flags,
+      columns,
+      loadMore,
+    }),
+    [store, ids, multiple, dispatch, getVisibleOptions, getAllOptions, flags, columns, loadMore],
   )
 }
