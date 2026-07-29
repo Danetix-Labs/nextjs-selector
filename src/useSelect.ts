@@ -88,16 +88,25 @@ export type LoadResult<TOption> =
   | readonly TOption[]
   | { readonly options: readonly TOption[]; readonly nextCursor?: unknown }
 
+/**
+ * Normalizes whatever the source returned, rejecting anything else.
+ *
+ * A malformed answer used to throw inside the promise handler, which is not
+ * the same as a rejected request: nothing caught it, so the widget sat empty
+ * without even reporting an error.
+ */
 function toPage<TOption>(result: LoadResult<TOption>): {
   options: readonly TOption[]
   nextCursor: unknown
 } {
-  return Array.isArray(result)
-    ? { options: result, nextCursor: undefined }
-    : {
-        options: (result as { options: readonly TOption[] }).options,
-        nextCursor: (result as { nextCursor?: unknown }).nextCursor,
-      }
+  if (Array.isArray(result)) return { options: result, nextCursor: undefined }
+
+  const options = (result as { options?: readonly TOption[] } | null)?.options
+  if (!Array.isArray(options)) {
+    throw new TypeError('loadOptions должен вернуть массив опций или { options, nextCursor }')
+  }
+
+  return { options, nextCursor: (result as { nextCursor?: unknown }).nextCursor }
 }
 
 export interface SelectFlags {
@@ -256,7 +265,19 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
         (result) => {
           if (!current) return
 
-          const page = toPage(result)
+          let page: { options: readonly TOption[]; nextCursor: unknown }
+          try {
+            page = toPage(result)
+          } catch {
+            // A malformed answer is a failed load, not an uncaught error:
+            // throwing here would escape the promise and leave the widget
+            // empty without so much as a message.
+            store.dispatch((state) =>
+              reduce(state, { type: 'setStatus', status: 'error' }, ctxRef.current),
+            )
+            return
+          }
+
           cursorRef.current = page.nextCursor
           if (cache)
             cacheRef.current.set(query, { options: page.options, nextCursor: page.nextCursor })
@@ -398,7 +419,16 @@ export function useSelect<TValue, TOption extends SelectOption<TValue> = SelectO
 
     loadRef.current(store.getState().query, cursor).then(
       (result) => {
-        const page = toPage(result)
+        let page: { options: readonly TOption[]; nextCursor: unknown }
+        try {
+          page = toPage(result)
+        } catch {
+          store.dispatch((current) =>
+            reduce(current, { type: 'setStatus', status: 'error' }, ctxRef.current),
+          )
+          return
+        }
+
         cursorRef.current = page.nextCursor
         setLoadedOptions((previous) => [...(previous ?? []), ...page.options])
         store.dispatch((current) =>
